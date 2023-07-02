@@ -11,7 +11,14 @@ use tui::{
     Frame, Terminal,
 };
 
+#[cfg(feature = "debug_socket")]
+mod debug;
+
 fn main() -> Result<(), Box<dyn Error>> {
+    #[cfg(feature = "debug_socket")]
+    let _debug_out = { debug::connect_to_iface() }?;
+
+    eprintln!("std-err redirected to debug socket");
     // setup terminal
     enable_raw_mode()?;
     let mut stdout = io::stdout();

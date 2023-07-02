@@ -11,4 +11,8 @@ categories = ["gui"]
 
 [dependencies]
 crossterm = "0.26.1"
+libc = {version = "0.2.147", optional = true}
 tui = "0.19.0"
+
+[features]
+debug_socket = ["libc"]
