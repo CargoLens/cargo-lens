@@ -13,6 +13,7 @@ use tui::{
 
 #[cfg(feature = "debug_socket")]
 mod debug;
+mod review_req_checklist;
 
 fn main() -> Result<(), Box<dyn Error>> {
     #[cfg(feature = "debug_socket")]
