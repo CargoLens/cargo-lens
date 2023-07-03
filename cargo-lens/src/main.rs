@@ -58,19 +58,12 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>) -> io::Result<()> {
 
 fn ui<B: Backend>(f: &mut Frame<B>) {
     let chunks = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints(
-            [
-                Constraint::Percentage(10),
-                Constraint::Percentage(80),
-                Constraint::Percentage(10),
-            ]
-            .as_ref(),
-        )
+        .direction(Direction::Horizontal)
+        .constraints([Constraint::Percentage(30), Constraint::Min(0)].as_ref())
         .split(f.size());
 
-    let block = Block::default().title("Block").borders(Borders::ALL);
+    let block = Block::default().title("Checklist").borders(Borders::ALL);
     f.render_widget(block, chunks[0]);
-    let block = Block::default().title("Block 2").borders(Borders::ALL);
-    f.render_widget(block, chunks[2]);
+    let block = Block::default().title("Info").borders(Borders::ALL);
+    f.render_widget(block, chunks[1]);
 }
