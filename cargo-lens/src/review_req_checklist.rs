@@ -33,3 +33,26 @@ struct ReviewReqChecklistItem {
     info: String,
     toggled: bool,
 }
+
+fn foo_bar_list() -> ReviewReqChecklist<3> {
+    ReviewReqChecklist {
+        items: [
+            ReviewReqChecklistItem {
+                name: "Fizz".to_string(),
+                info: "could be any multiple of 3".to_string(),
+                toggled: false,
+            },
+            ReviewReqChecklistItem {
+                name: "Buzz".to_string(),
+                info: "could be any multiple of 5".to_string(),
+                toggled: false,
+            },
+            ReviewReqChecklistItem {
+                name: "FizzBuzz".to_string(),
+                info: "could be any shared-multiple of 3 and 5".to_string(),
+                toggled: false,
+            },
+        ],
+        index: 0,
+    }
+}
