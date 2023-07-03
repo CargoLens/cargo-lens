@@ -3,7 +3,7 @@ name = "cargo-lens"
 version = "0.1.0"
 edition = "2021"
 license = "MIT OR Apache-2.0"
-description = "A repl utility to help write a review-request"
+description = "A tool to inspect your rust-project at the meta-level. Sherlock Holmes Approved"
 repository = "https://github.com/CargoLens/cargo-lens"
 categories = ["gui"]
 
