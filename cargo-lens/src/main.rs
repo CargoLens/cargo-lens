@@ -11,14 +11,30 @@ use tui::{
     Frame, Terminal,
 };
 
+use crate::diagnostics::{CargoDispatcher, DiagnosticImport};
+
 #[cfg(feature = "debug_socket")]
 mod debug;
+mod diagnostics;
 
 fn main() -> Result<(), Box<dyn Error>> {
-    #[cfg(feature = "debug_socket")]
-    let _debug_out = { debug::connect_to_iface() }?;
+    cfg_if::cfg_if! {
+        if #[cfg(feature = "debug_socket")] {
+            eprintln!("waiting for external debugger connection...");
+            let _debug_out = { debug::connect_to_iface() }?;
+        } else {
+            // TODO: somehow sanatise stdin/err/out for final product
+        }
+    }
 
-    eprintln!("std-err redirected to debug socket");
+    let _msg = <CargoDispatcher as DiagnosticImport>::fetch();
+    // Give something to diagnose: debugger should see a warning
+    #[cfg(feature = "debug_socket")]
+    {
+        let foo = 1;
+        eprintln!("{:#?}", _msg);
+    }
+
     // setup terminal
     enable_raw_mode()?;
     let mut stdout = io::stdout();
