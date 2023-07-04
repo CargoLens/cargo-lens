@@ -41,8 +41,6 @@ dependencies = [
  "crossterm 0.26.1",
  "libc",
  "mockall",
- "serde",
- "serde_json",
  "tui",
 ]
 
