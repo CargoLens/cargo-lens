@@ -84,9 +84,12 @@ fn ui<const LEN: usize, B: Backend>(
         .iter()
         .enumerate()
         .map(|(i, item)| {
+            // TODO: think about organising this code nicely. this is rapid-prototype-crap
+            // TODO: change between red and green text color instead
             let prefix = if item.toggled { "[✓] - " } else { "[×] - " };
             let res = ListItem::new(format!("{}{}", prefix, item.name));
             if i == list.index {
+                // TODO: find a nicer way to highlight
                 res.style(Style::default().add_modifier(Modifier::BOLD))
             } else {
                 res
