@@ -11,15 +11,18 @@ pub enum RankedDiagnostic {
     Help(Diagnostic),
 }
 
+/// For traits that you wish to implement with cargo, such as [DiagnosticImport]
+pub struct CargoDispatcher;
+
 #[cfg_attr(test, mockall::automock(type Error=();))]
 pub trait DiagnosticImport: Sized {
     type Error: Sized;
-    fn fetch() -> Result<Vec<Self>, Self::Error>;
+    fn fetch() -> Result<Vec<RankedDiagnostic>, Self::Error>;
 }
 
-impl DiagnosticImport for RankedDiagnostic {
+impl DiagnosticImport for CargoDispatcher {
     type Error = std::io::Error;
-    fn fetch() -> Result<Vec<Self>, <RankedDiagnostic as DiagnosticImport>::Error> {
+    fn fetch() -> Result<Vec<RankedDiagnostic>, <Self as DiagnosticImport>::Error> {
         let mut command = Command::new("cargo")
             .args(&["build", "--message-format=json"])
             .stdout(Stdio::piped())
