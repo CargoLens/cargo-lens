@@ -9,6 +9,7 @@ pub fn connect_to_iface() -> std::io::Result<TcpStream> {
     unsafe {
         libc::dup2(fd, libc::STDERR_FILENO);
     }
+    eprintln!("std-err redirected to debug socket");
 
     Ok(stream.0)
 }
