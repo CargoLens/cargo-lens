@@ -11,11 +11,11 @@ use tui::{
     Frame, Terminal,
 };
 
-use crate::cg_check::{CargoDispatcher, DiagnosticImport};
+use crate::diagnostics::{CargoDispatcher, DiagnosticImport};
 
-mod cg_check;
 #[cfg(feature = "debug_socket")]
 mod debug;
+mod diagnostics;
 
 fn main() -> Result<(), Box<dyn Error>> {
     #[cfg(feature = "debug_socket")]
