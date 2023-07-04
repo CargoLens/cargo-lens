@@ -11,12 +11,19 @@ use tui::{
     Frame, Terminal,
 };
 
+mod cg_check;
 #[cfg(feature = "debug_socket")]
 mod debug;
 
 fn main() -> Result<(), Box<dyn Error>> {
     #[cfg(feature = "debug_socket")]
     let _debug_out = { debug::connect_to_iface() }?;
+
+    let msg = cg_check::run()?;
+    #[cfg(feature = "debug_socket")]
+    {
+        eprintln!("{:#?}", msg);
+    }
 
     eprintln!("std-err redirected to debug socket");
     // setup terminal
