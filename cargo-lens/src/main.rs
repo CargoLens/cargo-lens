@@ -11,6 +11,8 @@ use tui::{
     Frame, Terminal,
 };
 
+use crate::cg_check::{DiagnosticImport, RankedDiagnostic};
+
 mod cg_check;
 #[cfg(feature = "debug_socket")]
 mod debug;
@@ -19,10 +21,10 @@ fn main() -> Result<(), Box<dyn Error>> {
     #[cfg(feature = "debug_socket")]
     let _debug_out = { debug::connect_to_iface() }?;
 
-    let msg = cg_check::run()?;
+    let _msg = <RankedDiagnostic as DiagnosticImport>::fetch();
     #[cfg(feature = "debug_socket")]
     {
-        eprintln!("{:#?}", msg);
+        eprintln!("{:#?}", _msg);
     }
 
     eprintln!("std-err redirected to debug socket");
