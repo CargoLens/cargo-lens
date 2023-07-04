@@ -7,7 +7,8 @@ use std::{error::Error, io};
 use tui::{
     backend::{Backend, CrosstermBackend},
     layout::{Constraint, Direction, Layout},
-    widgets::{Block, Borders},
+    style::{Modifier, Style},
+    widgets::{Block, Borders, List, ListItem, Paragraph},
     Frame, Terminal,
 };
 
@@ -46,25 +47,51 @@ fn main() -> Result<(), Box<dyn Error>> {
 }
 
 fn run_app<B: Backend>(terminal: &mut Terminal<B>) -> io::Result<()> {
+    let mut list = review_req_checklist::foo_bar_list();
     loop {
-        terminal.draw(|f| ui(f))?;
+        terminal.draw(|f| ui(f, &mut list))?;
 
         if let Event::Key(key) = event::read()? {
-            if let KeyCode::Char('q') = key.code {
-                return Ok(());
+            match key.code {
+                KeyCode::Char('q') => return Ok(()),
+                KeyCode::Down => {
+                    list.down();
+                }
+                KeyCode::Up => {
+                    list.up();
+                }
+                _ => (),
             }
         }
     }
 }
 
-fn ui<B: Backend>(f: &mut Frame<B>) {
+fn ui<const LEN: usize, B: Backend>(
+    f: &mut Frame<B>,
+    list: &mut review_req_checklist::ReviewReqChecklist<LEN>,
+) {
     let chunks = Layout::default()
         .direction(Direction::Horizontal)
         .constraints([Constraint::Percentage(30), Constraint::Min(0)].as_ref())
         .split(f.size());
+    let items: Vec<_> = list
+        .items
+        .iter()
+        .enumerate()
+        .map(|(i, item)| {
+            let res = ListItem::new(item.name.as_ref());
+            if i == list.index {
+                res.style(Style::default().add_modifier(Modifier::BOLD))
+            } else {
+                res
+            }
+        })
+        .collect();
 
     let block = Block::default().title("Checklist").borders(Borders::ALL);
-    f.render_widget(block, chunks[0]);
+    let checklist = List::new(items).block(block);
+    f.render_widget(checklist, chunks[0]);
     let block = Block::default().title("Info").borders(Borders::ALL);
-    f.render_widget(block, chunks[1]);
+    let info = Paragraph::new(list.items.get(list.index).unwrap().info.as_ref()).block(block);
+    f.render_widget(info, chunks[1]);
 }
