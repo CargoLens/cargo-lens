@@ -2,6 +2,7 @@ use cargo_metadata::diagnostic::{Diagnostic, DiagnosticLevel};
 use cargo_metadata::Message;
 use std::process::{Command, Stdio};
 
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum RankedDiagnostic {
     Warn(Diagnostic),
     Error(Diagnostic),
@@ -23,20 +24,34 @@ pub trait DiagnosticImport: Sized {
 impl DiagnosticImport for CargoDispatcher {
     type Error = std::io::Error;
     fn fetch() -> Result<Vec<RankedDiagnostic>, <Self as DiagnosticImport>::Error> {
+        let args = vec!["check", "--message-format=json"];
+        #[cfg(feature = "debug_socket")]
+        let args = {
+            // keep the vector immutable when not doing this.
+            let mut res = args.clone();
+            res.push("-F debug_socket");
+            res
+        };
+
         let mut command = Command::new("cargo")
-            .args(&["build", "--message-format=json"])
+            .args(args)
             .stdout(Stdio::piped())
             .spawn()
             .unwrap();
         let reader = std::io::BufReader::new(command.stdout.take().unwrap());
 
-        let rus = cargo_metadata::Message::parse_stream(reader);
-        let rus = rus.filter_map(|msg| match msg {
-            Ok(Message::CompilerMessage(good_msg)) => Some(good_msg.message.into()),
-            _ => None,
-        });
+        let stream = cargo_metadata::Message::parse_stream(reader);
+        let mut res = vec![];
+        for msg in stream {
+            match msg {
+                Ok(Message::CompilerMessage(good_msg)) => res.push(good_msg.message.into()),
+                Ok(Message::BuildFinished(_)) => break,
+                _ => continue,
+            }
+        }
+
         let _output = command.wait()?;
-        Ok(rus.collect())
+        Ok(res)
     }
 }
 

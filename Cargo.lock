@@ -37,6 +37,7 @@ name = "cargo-lens"
 version = "0.1.0"
 dependencies = [
  "cargo_metadata",
+ "cfg-if",
  "crossterm 0.26.1",
  "libc",
  "mockall",
