@@ -38,18 +38,33 @@ pub fn foo_bar_list() -> ReviewReqChecklist<4> {
     ReviewReqChecklist {
         items: [
             ReviewReqChecklistItem {
-                name: "First item".to_string(),
-                info: "right now, this just demos one part of this checklist idea".to_string(),
+                name: "compiles".to_string(),
+                info: "TODO: extract json from compiler. Mark item as complete if good".to_string(),
                 toggled: false,
             },
             ReviewReqChecklistItem {
-                name: "todo: make togglable to show done".to_string(),
-                info: "helloooooooooo".to_string(),
+                name: "compiles without warnings".to_string(),
+                info: "TODO: extract json from compiler. Do something with list of warnings. have it affect the list item struct (e.g. auto toggle if no warnings)".to_string(),
                 toggled: false,
             },
             ReviewReqChecklistItem {
-                name: "Buzz".to_string(),
-                info: "could be any multiple of 5".to_string(),
+                name: "Lints".to_string(),
+                info: "TODO: toggle tree to reveal available lints, which can be toggled,
+Each item, when indexed, would show the warnings it coveres
+also: think about how to aggregate, list, present warnings?
+the list-item might look like this when expanded:
+
+▼ Lint-options
+  - 'a' - all, 'd' - default, 'n' - none
+  [✓] complexity
+  [×] correctness
+  [✓] deprecated
+  [✓] nursery
+  [×] pedantic
+  [×] perf
+  [×] restriction
+  [×] style
+  [×] suspicious".to_string(),
                 toggled: false,
             },
             ReviewReqChecklistItem {
