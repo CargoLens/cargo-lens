@@ -60,6 +60,11 @@ fn run_app<B: Backend>(terminal: &mut Terminal<B>) -> io::Result<()> {
                 KeyCode::Up => {
                     list.up();
                 }
+                KeyCode::Tab => {
+                    let item = list.items.get_mut(list.index).expect("index out of range");
+                    item.toggled = !item.toggled;
+                }
+
                 _ => (),
             }
         }
@@ -79,7 +84,8 @@ fn ui<const LEN: usize, B: Backend>(
         .iter()
         .enumerate()
         .map(|(i, item)| {
-            let res = ListItem::new(item.name.as_ref());
+            let prefix = if item.toggled { "[✓] - " } else { "[×] - " };
+            let res = ListItem::new(format!("{}{}", prefix, item.name));
             if i == list.index {
                 res.style(Style::default().add_modifier(Modifier::BOLD))
             } else {
