@@ -5,7 +5,7 @@ pub struct ReviewReqChecklist<const LEN: usize> {
 }
 
 impl<const LEN: usize> ReviewReqChecklist<LEN> {
-    pub fn new(items: [ReviewReqChecklistItem; LEN]) -> Self {
+    pub fn _new(items: [ReviewReqChecklistItem; LEN]) -> Self {
         Self { items, index: 0 }
     }
 
