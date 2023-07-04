@@ -11,6 +11,7 @@ pub enum RankedDiagnostic {
     Help(Diagnostic),
 }
 
+#[cfg_attr(test, mockall::automock(type Error=();))]
 pub trait DiagnosticImport: Sized {
     type Error: Sized;
     fn fetch() -> Result<Vec<Self>, Self::Error>;

@@ -17,6 +17,10 @@ libc = {version = "0.2.147", optional = true}
 serde_json = "1.0.99"
 serde = "1.0.166"
 cargo_metadata = "0.15.4"
+mockall = "0.11.4"
+
+[dev-dependencies]
+mockall = {version = "0.11.4", features = ["nightly"] }
 
 [features]
 debug_socket = ["libc"]
