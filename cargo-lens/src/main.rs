@@ -12,49 +12,20 @@ use tui::{
     Frame, Terminal,
 };
 
-use crate::diagnostics::{CargoDispatcher, DiagnosticImport};
-
-#[macro_export]
-macro_rules! print {
-    ($($arg:tt)*) => {
-        #[cfg(feature = "debug_socket")]
-        std::eprint!($($arg)*);
-    };
-}
-
-#[macro_export]
-macro_rules! println {
-    ($($arg:tt)*) => {
-        #[cfg(feature = "debug_socket")]
-        std::eprintln!($($arg)*);
-    };
-}
-#[macro_export]
-macro_rules! eprint {
-    ($($arg:tt)*) => {
-        #[cfg(feature = "debug_socket")]
-        std::eprint!($($arg)*);
-    };
-}
-
-#[macro_export]
-macro_rules! eprintln {
-    ($($arg:tt)*) => {
-        #[cfg(feature = "debug_socket")]
-        std::eprintln!($($arg)*);
-    };
-}
-
 #[cfg(feature = "debug_socket")]
 mod debug;
 mod diagnostics;
+mod print_macros;
 mod review_req_checklist;
+
+use crate::diagnostics::{CargoDispatcher, DiagnosticImport};
+
 fn main() -> Result<(), Box<dyn Error>> {
     cfg_if::cfg_if! {
         if #[cfg(feature = "debug_socket")] {
             std::println!("listening on localhost:8080 for external debugger connection...");
             let _debug_out = { debug::connect_to_iface() }?;
-            std::println("`println!` disabled. stdout redirected to localhost:8080");
+            std::println!("`println!` disabled. stdout redirected to localhost:8080");
         } else {
             std::println!("println! and eprintln! disabled. stdout and the tui are now in an exclusive relationship.");
         }
