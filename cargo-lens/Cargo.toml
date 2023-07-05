@@ -1,10 +1,10 @@
 [package]
 name = "cargo-lens"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 license = "MIT OR Apache-2.0"
-description = "A tool to inspect your rust-project at the meta-level. Sherlock Holmes Approved"
-repository = "https://github.com/CargoLens/cargo-lens-ws/cargo-lens"
+description = "(WIP) A tool to inspect your rust-project at the meta-level. Sherlock Holmes Approved"
+repository = "https://github.com/CargoLens/cargo-lens-ws/tree/main/cargo-lens"
 categories = ["gui"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
