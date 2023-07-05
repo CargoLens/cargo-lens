@@ -14,6 +14,29 @@ use tui::{
 
 use crate::diagnostics::{CargoDispatcher, DiagnosticImport};
 
+#[macro_export]
+macro_rules! print {
+    ($($arg:tt)*) => {
+        {
+            #[cfg(feature = "debug_socket")]
+            let _ = std::io::stderr().write_fmt(format_args!($($arg)*)).unwrap();
+        }
+    };
+}
+
+#[macro_export]
+macro_rules! println {
+    () => {
+        print!("\n")
+    };
+    ($fmt:expr) => {
+        print!(concat!($fmt, "\n"))
+    };
+    ($fmt:expr, $($arg:tt)*) => {
+        print!(concat!($fmt, "\n"), $($arg)*)
+    };
+}
+
 #[cfg(feature = "debug_socket")]
 mod debug;
 mod diagnostics;
