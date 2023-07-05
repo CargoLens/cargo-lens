@@ -17,23 +17,31 @@ use crate::diagnostics::{CargoDispatcher, DiagnosticImport};
 #[macro_export]
 macro_rules! print {
     ($($arg:tt)*) => {
-        {
-            #[cfg(feature = "debug_socket")]
-            let _ = std::io::stderr().write_fmt(format_args!($($arg)*)).unwrap();
-        }
+        #[cfg(feature = "debug_socket")]
+        std::eprint!($($arg)*);
     };
 }
 
 #[macro_export]
 macro_rules! println {
-    () => {
-        print!("\n")
+    ($($arg:tt)*) => {
+        #[cfg(feature = "debug_socket")]
+        std::eprintln!($($arg)*);
     };
-    ($fmt:expr) => {
-        print!(concat!($fmt, "\n"))
+}
+#[macro_export]
+macro_rules! eprint {
+    ($($arg:tt)*) => {
+        #[cfg(feature = "debug_socket")]
+        std::eprint!($($arg)*);
     };
-    ($fmt:expr, $($arg:tt)*) => {
-        print!(concat!($fmt, "\n"), $($arg)*)
+}
+
+#[macro_export]
+macro_rules! eprintln {
+    ($($arg:tt)*) => {
+        #[cfg(feature = "debug_socket")]
+        std::eprintln!($($arg)*);
     };
 }
 
@@ -41,14 +49,14 @@ macro_rules! println {
 mod debug;
 mod diagnostics;
 mod review_req_checklist;
-
 fn main() -> Result<(), Box<dyn Error>> {
     cfg_if::cfg_if! {
         if #[cfg(feature = "debug_socket")] {
-            eprintln!("waiting for external debugger connection...");
+            std::println!("listening on localhost:8080 for external debugger connection...");
             let _debug_out = { debug::connect_to_iface() }?;
+            std::println("`println!` disabled. stdout redirected to localhost:8080");
         } else {
-            // TODO: somehow sanatise stdin/err/out for final product
+            std::println!("println! and eprintln! disabled. stdout and the tui are now in an exclusive relationship.");
         }
     }
 
