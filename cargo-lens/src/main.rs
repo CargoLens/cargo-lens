@@ -15,6 +15,8 @@ use tui::{
 #[cfg(feature = "debug_socket")]
 mod debug;
 mod diagnostics;
+/// Overrides std-provided print macros so it doesn't interfere with the terminal.
+/// To use the std-print macros, call with `std::[e]print[ln]!`
 mod print_macros;
 mod review_req_checklist;
 
@@ -59,7 +61,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     terminal.show_cursor()?;
 
     if let Err(err) = res {
-        println!("{:?}", err);
+        std::eprintln!("{:?}", err);
     }
 
     Ok(())
