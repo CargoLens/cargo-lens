@@ -12,20 +12,24 @@ use tui::{
     Frame, Terminal,
 };
 
-use crate::diagnostics::{CargoDispatcher, DiagnosticImport};
-
 #[cfg(feature = "debug_socket")]
 mod debug;
 mod diagnostics;
+/// Overrides std-provided print macros so it doesn't interfere with the terminal.
+/// To use the std-print macros, call with `std::[e]print[ln]!`
+mod print_macros;
 mod review_req_checklist;
+
+use crate::diagnostics::{CargoDispatcher, DiagnosticImport};
 
 fn main() -> Result<(), Box<dyn Error>> {
     cfg_if::cfg_if! {
         if #[cfg(feature = "debug_socket")] {
-            eprintln!("waiting for external debugger connection...");
+            std::println!("listening on localhost:8080 for external debugger connection...");
             let _debug_out = { debug::connect_to_iface() }?;
+            std::println!("`println!` disabled. stdout redirected to localhost:8080");
         } else {
-            // TODO: somehow sanatise stdin/err/out for final product
+            std::println!("println! and eprintln! disabled. stdout and the tui are now in an exclusive relationship.");
         }
     }
 
@@ -57,7 +61,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     terminal.show_cursor()?;
 
     if let Err(err) = res {
-        println!("{:?}", err);
+        std::eprintln!("{:?}", err);
     }
 
     Ok(())
