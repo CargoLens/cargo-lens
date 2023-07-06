@@ -1,16 +1,18 @@
+#![warn(unused_crate_dependencies)]
+
 use crossterm::{
     event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode},
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
-use std::{error::Error, io};
-use tui::{
+use ratatui::{
     backend::{Backend, CrosstermBackend},
     layout::{Constraint, Direction, Layout},
     style::{Modifier, Style},
     widgets::{Block, Borders, List, ListItem, Paragraph},
     Frame, Terminal,
 };
+use std::{error::Error, io};
 
 #[cfg(feature = "debug_socket")]
 mod debug;
@@ -122,6 +124,7 @@ fn ui<const LEN: usize, B: Backend>(
     let checklist = List::new(items).block(block);
     f.render_widget(checklist, chunks[0]);
     let block = Block::default().title("Info").borders(Borders::ALL);
-    let info = Paragraph::new(list.items.get(list.index).unwrap().info.as_ref()).block(block);
+    let info =
+        Paragraph::new::<&str>(list.items.get(list.index).unwrap().info.as_ref()).block(block);
     f.render_widget(info, chunks[1]);
 }
