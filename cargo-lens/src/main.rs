@@ -1,13 +1,11 @@
 #![warn(unused_crate_dependencies)]
 
-use crossbeam::channel::Receiver;
 use crossterm::{
-    event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode},
+    event::{self, DisableMouseCapture, EnableMouseCapture, Event},
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
 use diagnostics::RankedDiagnostic;
-use non_empty_vec::NonEmpty;
 use ratatui::{
     backend::{Backend, CrosstermBackend},
     layout::{Constraint, Direction, Layout},
@@ -138,12 +136,6 @@ fn event_loop<B: Backend>(terminal: &mut Terminal<B>) -> io::Result<()> {
     }
 }
 
-fn select_event<D: DiagnosticImport>(
-    input_rx: Receiver<KeyCode>,
-    diagnostics_rx: Receiver<Result<Vec<RankedDiagnostic>, D::Error>>,
-) -> NonEmpty<QueueEvent> {
-    todo!()
-}
 fn ui<const LEN: usize, B: Backend>(
     f: &mut Frame<B>,
     list: &mut review_req_checklist::ReviewReqChecklist<LEN>,
