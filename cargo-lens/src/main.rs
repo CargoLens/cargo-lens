@@ -93,17 +93,19 @@ fn event_loop<B: Backend>(terminal: &mut Terminal<B>) -> io::Result<()> {
     std::thread::Builder::new()
         .name("cargo-fetcher".to_string())
         .spawn(move || {
+            let res = <CargoActor as CargoImport>::fetch();
+            cargo_tx
+                .send(res)
+                .expect("todo: handle actor channel fail story");
             loop {
                 // TODO?: have a receiver to request a new diagnostic from cargo?
-                let res = <CargoActor as CargoImport>::fetch();
-                cargo_tx
-                    .send(res)
-                    .expect("todo: handle actor channel fail story");
+                std::thread::park();
             }
         })
         .unwrap();
 
-    loop {
+    terminal.draw(|f| ui(f, &mut list))?;
+    'outer: loop {
         let mut redraw = false;
 
         // While there are messages on any channel, handle them and set redraw to true
@@ -113,11 +115,26 @@ fn event_loop<B: Backend>(terminal: &mut Terminal<B>) -> io::Result<()> {
                 .expect("todo...")
                 .iter()
             {
-                match event {
-                    QueueEvent::AsyncEvent(AsyncNtfn::Cargo(_ntfn)) => todo!(),
-                    QueueEvent::AsyncEvent(AsyncNtfn::App(_app)) => todo!(),
-                    QueueEvent::InputEvent(_) => todo!(),
+                let needs_redraw = match event {
+                    QueueEvent::AsyncEvent(AsyncNtfn::Cargo(_ntfn)) => {
+                        println!("{:?}", _ntfn);
+                        continue;
+                    }
+                    QueueEvent::AsyncEvent(AsyncNtfn::_App(_app)) => todo!(),
+                    QueueEvent::InputEvent(Ok(Event::Key(k))) => match k.code {
+                        event::KeyCode::Up => list.up(),
+                        event::KeyCode::Down => list.down(),
+                        event::KeyCode::Char('q') => break 'outer,
+                        _ => continue,
+                    },
+                    QueueEvent::InputEvent(_) => continue,
+                };
+                if needs_redraw {
+                    redraw = true;
                 }
+            }
+            if redraw {
+                break;
             }
         }
 
@@ -125,6 +142,7 @@ fn event_loop<B: Backend>(terminal: &mut Terminal<B>) -> io::Result<()> {
             terminal.draw(|f| ui(f, &mut list))?;
         }
     }
+    Ok(())
 }
 
 fn ui<const LEN: usize, B: Backend>(

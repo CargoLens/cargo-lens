@@ -11,29 +11,29 @@ pub enum QueueEvent {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum SyntaxHighlightProgress {
-    Progress,
-    Done,
+    _Progress,
+    _Done,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum AsyncAppNtfn {
-    SyntaxHighlighting(SyntaxHighlightProgress),
+    _SyntaxHighlighting(SyntaxHighlightProgress),
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum AsyncNtfn {
-    App(AsyncAppNtfn),
+    _App(AsyncAppNtfn),
     Cargo(AsyncCargoNtfn),
 }
 
-pub enum SelectError {
+pub enum _SelectError {
     Error,
 }
 
 #[derive(Clone, Copy, PartialEq)]
 enum Updater {
-    Ticker,
-    NotifyWatcher,
+    _Ticker,
+    _NotifyWatcher,
 }
 
 pub fn select_event<D: CargoImport>(
@@ -51,12 +51,18 @@ pub fn select_event<D: CargoImport>(
         let index = oper.index();
 
         let ev = match index {
-            0 => oper.recv(input_rx).map(|_| todo!()),
-            1 => oper
-                .recv(diagnostics_rx)
-                .map(|e| QueueEvent::AsyncEvent(AsyncNtfn::Cargo((&e.unwrap()).into()))),
+            0 => {
+                let Ok(ev) = oper.recv(input_rx) else {continue};
+                let Ok(ev) = ev else {continue};
+                QueueEvent::InputEvent(Ok(ev))
+            }
+            1 => {
+                let Ok(Ok(ev)) = oper.recv(diagnostics_rx) else {continue};
+                let ntfn: AsyncCargoNtfn = (&ev).into();
+                QueueEvent::AsyncEvent(AsyncNtfn::Cargo(ntfn))
+            }
             _ => continue,
-        }?;
+        };
         match res {
             Some(ref mut list) => list.push(ev),
             None => res = Some(NonEmpty::new(ev)),

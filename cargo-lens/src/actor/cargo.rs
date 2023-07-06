@@ -66,6 +66,7 @@ impl CargoImport for CargoActor {
         let mut command = Command::new("cargo")
             .args(args)
             .stdout(Stdio::piped())
+            .stderr(Stdio::null())
             .spawn()
             .unwrap();
         let reader = std::io::BufReader::new(command.stdout.take().unwrap());
