@@ -16,14 +16,14 @@ pub enum RankedDiagnostic {
 pub struct CargoDispatcher;
 
 #[cfg_attr(test, mockall::automock(type Error=();))]
-pub trait DiagnosticImport: Sized {
+pub trait CargoImport: Sized {
     type Error: Sized;
     fn fetch() -> Result<Vec<RankedDiagnostic>, Self::Error>;
 }
 
-impl DiagnosticImport for CargoDispatcher {
+impl CargoImport for CargoDispatcher {
     type Error = std::io::Error;
-    fn fetch() -> Result<Vec<RankedDiagnostic>, <Self as DiagnosticImport>::Error> {
+    fn fetch() -> Result<Vec<RankedDiagnostic>, <Self as CargoImport>::Error> {
         let args = vec!["check", "--message-format=json"];
         #[cfg(feature = "debug_socket")]
         let args = {

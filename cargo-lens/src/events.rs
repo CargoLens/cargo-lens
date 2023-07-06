@@ -2,7 +2,7 @@ use crossbeam::channel::{Receiver, Select};
 use crossterm::event::KeyCode;
 use non_empty_vec::NonEmpty;
 
-use crate::diagnostics::{DiagnosticImport, RankedDiagnostic};
+use crate::cargo_interface::{CargoImport, RankedDiagnostic};
 
 ///
 #[derive(Clone)]
@@ -47,7 +47,7 @@ enum Updater {
     NotifyWatcher,
 }
 
-fn select_event<D: DiagnosticImport>(
+fn select_event<D: CargoImport>(
     input_rx: &Receiver<KeyCode>,
     diagnostics_rx: &Receiver<Result<Vec<RankedDiagnostic>, D::Error>>,
 ) -> Result<NonEmpty<QueueEvent>, SelectError> {

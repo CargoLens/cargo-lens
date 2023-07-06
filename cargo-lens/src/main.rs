@@ -1,11 +1,11 @@
 #![warn(unused_crate_dependencies)]
 
+use cargo_interface::RankedDiagnostic;
 use crossterm::{
     event::{self, DisableMouseCapture, EnableMouseCapture, Event},
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
-use diagnostics::RankedDiagnostic;
 use ratatui::{
     backend::{Backend, CrosstermBackend},
     layout::{Constraint, Direction, Layout},
@@ -15,16 +15,16 @@ use ratatui::{
 };
 use std::{error::Error, io};
 
+mod cargo_interface;
 #[cfg(feature = "debug_socket")]
 mod debug;
-mod diagnostics;
 mod events;
 /// Overrides std-provided print macros so it doesn't interfere with the terminal.
 /// To use the std-print macros, call with `std::[e]print[ln]!`
 mod print_macros;
 mod review_req_checklist;
 
-use crate::diagnostics::{CargoDispatcher, DiagnosticImport};
+use crate::cargo_interface::{CargoDispatcher, CargoImport};
 use events::*;
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -38,7 +38,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         }
     }
 
-    let _msg = <CargoDispatcher as DiagnosticImport>::fetch();
+    let _msg = <CargoDispatcher as CargoImport>::fetch();
     // Give something to diagnose: debugger should see a warning
     #[cfg(feature = "debug_socket")]
     {
@@ -77,8 +77,8 @@ fn event_loop<B: Backend>(terminal: &mut Terminal<B>) -> io::Result<()> {
 
     let (xterm_event_tx, xterm_event_rx) =
         crossbeam::channel::unbounded::<std::io::Result<Event>>();
-    let (diagnostics_tx, diagnostics_rx) = crossbeam::channel::unbounded::<
-        Result<Vec<RankedDiagnostic>, <CargoDispatcher as DiagnosticImport>::Error>,
+    let (cargo_tx, cargo_rx) = crossbeam::channel::unbounded::<
+        Result<Vec<RankedDiagnostic>, <CargoDispatcher as CargoImport>::Error>,
     >();
 
     std::thread::Builder::new()
@@ -91,12 +91,12 @@ fn event_loop<B: Backend>(terminal: &mut Terminal<B>) -> io::Result<()> {
         })
         .unwrap();
     std::thread::Builder::new()
-        .name("diagnostic-fetcher".to_string())
+        .name("cargo-fetcher".to_string())
         .spawn(move || {
             loop {
-                // TODO?: have a receiver to request a new diagnostic?
-                let res = <CargoDispatcher as diagnostics::DiagnosticImport>::fetch();
-                diagnostics_tx
+                // TODO?: have a receiver to request a new diagnostic from cargo?
+                let res = <CargoDispatcher as cargo_interface::CargoImport>::fetch();
+                cargo_tx
                     .send(res)
                     .expect("todo: handle actor channel fail story");
             }
@@ -110,7 +110,7 @@ fn event_loop<B: Backend>(terminal: &mut Terminal<B>) -> io::Result<()> {
         loop {
             /* redraw |= */
             crossbeam::channel::select! {
-                recv(diagnostics_rx) -> diagnostics => todo!("handle diagnostics"),
+                recv(cargo_rx) -> diagnostics => todo!("handle diagnostics"),
                 recv(xterm_event_rx) -> key_event => todo!("hondle key event"),
                 default => break,
             };
