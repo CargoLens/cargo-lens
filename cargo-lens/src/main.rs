@@ -1,5 +1,6 @@
 #![warn(unused_crate_dependencies)]
 
+use crossbeam::channel::Receiver;
 use crossterm::{
     event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode},
     execute,
@@ -18,12 +19,14 @@ use std::{error::Error, io};
 #[cfg(feature = "debug_socket")]
 mod debug;
 mod diagnostics;
+mod events;
 /// Overrides std-provided print macros so it doesn't interfere with the terminal.
 /// To use the std-print macros, call with `std::[e]print[ln]!`
 mod print_macros;
 mod review_req_checklist;
 
 use crate::diagnostics::{CargoDispatcher, DiagnosticImport};
+use events::*;
 
 fn main() -> Result<(), Box<dyn Error>> {
     cfg_if::cfg_if! {
@@ -134,6 +137,12 @@ fn event_loop<B: Backend>(terminal: &mut Terminal<B>) -> io::Result<()> {
     }
 }
 
+fn select_event<D: DiagnosticImport>(
+    input_rx: Receiver<KeyCode>,
+    diagnostics_rx: Receiver<Result<Vec<RankedDiagnostic>, D::Error>>,
+) -> (QueueEvent, Option<Vec<QueueEvent>>) {
+    todo!()
+}
 fn ui<const LEN: usize, B: Backend>(
     f: &mut Frame<B>,
     list: &mut review_req_checklist::ReviewReqChecklist<LEN>,
