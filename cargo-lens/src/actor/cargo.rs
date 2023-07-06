@@ -43,7 +43,7 @@ impl From<&Vec<RankedDiagnostic>> for AsyncCargoNtfn {
     }
 }
 /// For traits that you wish to implement with cargo, such as [DiagnosticImport]
-pub struct CargoDispatcher;
+pub struct CargoActor;
 
 #[cfg_attr(test, mockall::automock(type Error=();))]
 pub trait CargoImport: Sized {
@@ -51,7 +51,7 @@ pub trait CargoImport: Sized {
     fn fetch() -> Result<Vec<RankedDiagnostic>, Self::Error>;
 }
 
-impl CargoImport for CargoDispatcher {
+impl CargoImport for CargoActor {
     type Error = std::io::Error;
     fn fetch() -> Result<Vec<RankedDiagnostic>, <Self as CargoImport>::Error> {
         let args = vec!["check", "--message-format=json"];

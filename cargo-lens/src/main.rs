@@ -1,6 +1,6 @@
 #![warn(unused_crate_dependencies)]
 
-use cargo_interface::RankedDiagnostic;
+use actor::cargo::RankedDiagnostic;
 use crossterm::{
     event::{self, DisableMouseCapture, EnableMouseCapture, Event},
     execute,
@@ -15,7 +15,7 @@ use ratatui::{
 };
 use std::{error::Error, io};
 
-mod cargo_interface;
+mod actor;
 #[cfg(feature = "debug_socket")]
 mod debug;
 mod events;
@@ -24,7 +24,7 @@ mod events;
 mod print_macros;
 mod review_req_checklist;
 
-use crate::cargo_interface::{CargoDispatcher, CargoImport};
+use actor::cargo::{CargoActor, CargoImport};
 use events::*;
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -38,7 +38,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         }
     }
 
-    let _msg = <CargoDispatcher as CargoImport>::fetch();
+    let _msg = <CargoActor as CargoImport>::fetch();
     // Give something to diagnose: debugger should see a warning
     #[cfg(feature = "debug_socket")]
     {
@@ -78,7 +78,7 @@ fn event_loop<B: Backend>(terminal: &mut Terminal<B>) -> io::Result<()> {
     let (xterm_event_tx, xterm_event_rx) =
         crossbeam::channel::unbounded::<std::io::Result<Event>>();
     let (cargo_tx, cargo_rx) = crossbeam::channel::unbounded::<
-        Result<Vec<RankedDiagnostic>, <CargoDispatcher as CargoImport>::Error>,
+        Result<Vec<RankedDiagnostic>, <CargoActor as CargoImport>::Error>,
     >();
 
     std::thread::Builder::new()
@@ -95,7 +95,7 @@ fn event_loop<B: Backend>(terminal: &mut Terminal<B>) -> io::Result<()> {
         .spawn(move || {
             loop {
                 // TODO?: have a receiver to request a new diagnostic from cargo?
-                let res = <CargoDispatcher as cargo_interface::CargoImport>::fetch();
+                let res = <CargoActor as CargoImport>::fetch();
                 cargo_tx
                     .send(res)
                     .expect("todo: handle actor channel fail story");
@@ -109,7 +109,7 @@ fn event_loop<B: Backend>(terminal: &mut Terminal<B>) -> io::Result<()> {
         // While there are messages on any channel, handle them and set redraw to true
         loop {
             /* redraw |= */
-            for event in select_event::<CargoDispatcher>(&xterm_event_rx, &cargo_rx)
+            for event in select_event::<CargoActor>(&xterm_event_rx, &cargo_rx)
                 .expect("todo...")
                 .iter()
             {

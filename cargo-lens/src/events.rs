@@ -1,8 +1,8 @@
 use crossbeam::channel::{Receiver, RecvError, Select};
-use crossterm::event::{Event, KeyCode};
+use crossterm::event::Event;
 use non_empty_vec::NonEmpty;
 
-use crate::cargo_interface::{AsyncCargoNtfn, CargoImport, RankedDiagnostic};
+use crate::actor::cargo::{AsyncCargoNtfn, CargoImport, RankedDiagnostic};
 
 pub enum QueueEvent {
     AsyncEvent(AsyncNtfn),
@@ -51,7 +51,7 @@ pub fn select_event<D: CargoImport>(
         let index = oper.index();
 
         let ev = match index {
-            0 => oper.recv(input_rx).map(QueueEvent::InputEvent),
+            0 => oper.recv(input_rx).map(|_| todo!()),
             1 => oper
                 .recv(diagnostics_rx)
                 .map(|e| QueueEvent::AsyncEvent(AsyncNtfn::Cargo((&e.unwrap()).into()))),
