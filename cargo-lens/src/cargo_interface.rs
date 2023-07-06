@@ -12,12 +12,42 @@ pub enum RankedDiagnostic {
     Help(Diagnostic),
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum AsyncCargoNtfn {
+    Nothing,
+    Warnings,
+    Errors,
+}
+
+impl From<&Vec<RankedDiagnostic>> for AsyncCargoNtfn {
+    fn from(values: &Vec<RankedDiagnostic>) -> Self {
+        if values.is_empty() {
+            return Self::Nothing;
+        }
+        let mut has_warns = false;
+        values
+            .iter()
+            .find_map(|val| match val {
+                RankedDiagnostic::Error(_) => Some(Self::Errors),
+                RankedDiagnostic::Warn(_) => {
+                    has_warns = true;
+                    None
+                }
+                _ => None,
+            })
+            .unwrap_or(if has_warns {
+                Self::Warnings
+            } else {
+                Self::Nothing
+            })
+    }
+}
 /// For traits that you wish to implement with cargo, such as [DiagnosticImport]
 pub struct CargoDispatcher;
 
 #[cfg_attr(test, mockall::automock(type Error=();))]
 pub trait CargoImport: Sized {
-    type Error: Sized;
+    type Error: std::fmt::Debug + Sized;
     fn fetch() -> Result<Vec<RankedDiagnostic>, Self::Error>;
 }
 

@@ -1,8 +1,8 @@
-use crossbeam::channel::{Receiver, Select};
+use crossbeam::channel::{Receiver, RecvError, Select};
 use crossterm::event::KeyCode;
 use non_empty_vec::NonEmpty;
 
-use crate::cargo_interface::{CargoImport, RankedDiagnostic};
+use crate::cargo_interface::{AsyncCargoNtfn, CargoImport, RankedDiagnostic};
 
 ///
 #[derive(Clone)]
@@ -38,9 +38,6 @@ pub enum SelectError {
     Error,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub struct AsyncCargoNtfn;
-
 #[derive(Clone, Copy, PartialEq)]
 enum Updater {
     Ticker,
@@ -50,7 +47,7 @@ enum Updater {
 fn select_event<D: CargoImport>(
     input_rx: &Receiver<KeyCode>,
     diagnostics_rx: &Receiver<Result<Vec<RankedDiagnostic>, D::Error>>,
-) -> Result<NonEmpty<QueueEvent>, SelectError> {
+) -> Result<NonEmpty<QueueEvent>, RecvError> {
     let mut sel = Select::new();
 
     sel.recv(input_rx);
@@ -63,7 +60,7 @@ fn select_event<D: CargoImport>(
         0 => oper.recv(input_rx).map(QueueEvent::InputEvent),
         1 => oper
             .recv(diagnostics_rx)
-            .map(|e| QueueEvent::AsyncEvent(AsyncNtfn::Cargo(e))),
+            .map(|e| QueueEvent::AsyncEvent(AsyncNtfn::Cargo((&e.unwrap()).into()))),
         _ => panic!("unknown select source"),
     }?;
 
