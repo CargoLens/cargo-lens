@@ -15,6 +15,7 @@ libc = {version = "0.2.147", optional = true}
 cargo_metadata = "0.15.4"
 cfg-if = "1.0.0"
 ratatui = "0.21.0"
+crossbeam = "0.8.2"
 
 [dev-dependencies]
 mockall = "0.11.4"

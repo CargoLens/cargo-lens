@@ -5,6 +5,7 @@ use crossterm::{
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
+use diagnostics::RankedDiagnostic;
 use ratatui::{
     backend::{Backend, CrosstermBackend},
     layout::{Constraint, Direction, Layout},
@@ -51,7 +52,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut terminal = Terminal::new(backend)?;
 
     // create app and run it
-    let res = run_app(&mut terminal);
+    let res = event_loop(&mut terminal);
 
     // restore terminal
     disable_raw_mode()?;
@@ -69,27 +70,66 @@ fn main() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-fn run_app<B: Backend>(terminal: &mut Terminal<B>) -> io::Result<()> {
+fn event_loop<B: Backend>(terminal: &mut Terminal<B>) -> io::Result<()> {
     let mut list = review_req_checklist::foo_bar_list();
-    loop {
-        terminal.draw(|f| ui(f, &mut list))?;
 
-        if let Event::Key(key) = event::read()? {
-            match key.code {
-                KeyCode::Char('q') => return Ok(()),
-                KeyCode::Down => {
-                    list.down();
-                }
-                KeyCode::Up => {
-                    list.up();
-                }
-                KeyCode::Tab => {
-                    let item = list.items.get_mut(list.index).expect("index out of range");
-                    item.toggled = !item.toggled;
-                }
+    let (xterm_event_tx, xterm_event_rx) =
+        crossbeam::channel::unbounded::<std::io::Result<Event>>();
+    let (diagnostics_tx, diagnostics_rx) = crossbeam::channel::unbounded::<
+        Result<Vec<RankedDiagnostic>, <CargoDispatcher as DiagnosticImport>::Error>,
+    >();
 
-                _ => (),
+    std::thread::Builder::new()
+        .name("crossterm-event-reader".to_string())
+        .spawn(move || loop {
+            // TODO: a story to unblock + shutdown gracefully
+            xterm_event_tx
+                .send(event::read())
+                .expect("todo: handle actor channel fail story");
+        })
+        .unwrap();
+    std::thread::Builder::new()
+        .name("diagnostic-fetcher".to_string())
+        .spawn(move || {
+            loop {
+                // TODO?: have a receiver to request a new diagnostic?
+                let res = <CargoDispatcher as diagnostics::DiagnosticImport>::fetch();
+                diagnostics_tx
+                    .send(res)
+                    .expect("todo: handle actor channel fail story");
             }
+        })
+        .unwrap();
+
+    loop {
+        let mut redraw = false;
+
+        // While there are messages on any channel, handle them and set redraw to true
+        loop {
+            /* redraw |= */
+            crossbeam::channel::select! {
+                recv(diagnostics_rx) -> diagnostics => todo!("handle diagnostics"),
+                recv(xterm_event_rx) -> key_event => todo!("hondle key event"),
+                default => break,
+            };
+            // match event {
+            //     Some(Event::Diagnostic(diagnostics)) => {
+            //         // Process diagnostics
+            //         redraw = true;
+            //     }
+            //     Some(Event::Key(key_event)) => {
+            //         // Process key event
+            //         redraw = true;
+            //     }
+            //     None => {
+            //         // No more messages, break the loop
+            //         break;
+            //     }
+            // }
+        }
+
+        if redraw {
+            terminal.draw(|f| ui(f, &mut list))?;
         }
     }
 }
