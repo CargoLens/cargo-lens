@@ -7,6 +7,7 @@ use crossterm::{
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
 use diagnostics::RankedDiagnostic;
+use non_empty_vec::NonEmpty;
 use ratatui::{
     backend::{Backend, CrosstermBackend},
     layout::{Constraint, Direction, Layout},
@@ -140,7 +141,7 @@ fn event_loop<B: Backend>(terminal: &mut Terminal<B>) -> io::Result<()> {
 fn select_event<D: DiagnosticImport>(
     input_rx: Receiver<KeyCode>,
     diagnostics_rx: Receiver<Result<Vec<RankedDiagnostic>, D::Error>>,
-) -> (QueueEvent, Option<Vec<QueueEvent>>) {
+) -> NonEmpty<QueueEvent> {
     todo!()
 }
 fn ui<const LEN: usize, B: Backend>(
