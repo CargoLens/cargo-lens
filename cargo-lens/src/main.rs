@@ -109,25 +109,16 @@ fn event_loop<B: Backend>(terminal: &mut Terminal<B>) -> io::Result<()> {
         // While there are messages on any channel, handle them and set redraw to true
         loop {
             /* redraw |= */
-            crossbeam::channel::select! {
-                recv(cargo_rx) -> diagnostics => todo!("handle diagnostics"),
-                recv(xterm_event_rx) -> key_event => todo!("hondle key event"),
-                default => break,
-            };
-            // match event {
-            //     Some(Event::Diagnostic(diagnostics)) => {
-            //         // Process diagnostics
-            //         redraw = true;
-            //     }
-            //     Some(Event::Key(key_event)) => {
-            //         // Process key event
-            //         redraw = true;
-            //     }
-            //     None => {
-            //         // No more messages, break the loop
-            //         break;
-            //     }
-            // }
+            for event in select_event::<CargoDispatcher>(&xterm_event_rx, &cargo_rx)
+                .expect("todo...")
+                .iter()
+            {
+                match event {
+                    QueueEvent::AsyncEvent(AsyncNtfn::Cargo(_ntfn)) => todo!(),
+                    QueueEvent::AsyncEvent(AsyncNtfn::App(_app)) => todo!(),
+                    QueueEvent::InputEvent(_) => todo!(),
+                }
+            }
         }
 
         if redraw {
