@@ -1,3 +1,8 @@
+use ratatui::{
+    text::{Line, Span},
+    widgets::ListItem,
+};
+
 #[derive(Debug)]
 pub struct ReviewReqChecklist<const LEN: usize> {
     pub items: [ReviewReqChecklistItem; LEN],
@@ -24,6 +29,31 @@ impl<const LEN: usize> ReviewReqChecklist<LEN> {
         } else {
             false
         }
+    }
+    pub fn lines(&self) -> Vec<ListItem> {
+        let tick = "✓";
+        let cross = "×";
+        let span = |fill| -> Vec<Span> {
+            ["[", fill, "] - "]
+                .into_iter()
+                .map(|st: &str| Span::raw(st))
+                .collect()
+        };
+
+        let lines: Vec<ListItem> = self
+            .items
+            .iter()
+            .map(|item| {
+                let mut spans = if item.toggled {
+                    span(tick)
+                } else {
+                    span(cross)
+                };
+                spans.push(Span::raw(&item.name));
+                ListItem::new(Line::from(spans))
+            })
+            .collect();
+        lines
     }
 }
 

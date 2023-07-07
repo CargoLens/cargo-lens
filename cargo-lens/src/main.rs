@@ -9,8 +9,7 @@ use crossterm::{
 use ratatui::{
     backend::{Backend, CrosstermBackend},
     layout::{Constraint, Direction, Layout},
-    style::{Modifier, Style},
-    widgets::{Block, Borders, List, ListItem, Paragraph},
+    widgets::{Block, Borders, List, Paragraph},
     Frame, Terminal,
 };
 use std::{error::Error, io};
@@ -124,6 +123,10 @@ fn event_loop<B: Backend>(terminal: &mut Terminal<B>) -> io::Result<()> {
                     QueueEvent::InputEvent(Ok(Event::Key(k))) => match k.code {
                         event::KeyCode::Up => list.up(),
                         event::KeyCode::Down => list.down(),
+                        event::KeyCode::Tab => {
+                            list.items[list.index].toggled = !list.items[list.index].toggled;
+                            true
+                        }
                         event::KeyCode::Char('q') => break 'outer,
                         _ => continue,
                     },
@@ -153,23 +156,7 @@ fn ui<const LEN: usize, B: Backend>(
         .direction(Direction::Horizontal)
         .constraints([Constraint::Percentage(30), Constraint::Min(0)].as_ref())
         .split(f.size());
-    let items: Vec<_> = list
-        .items
-        .iter()
-        .enumerate()
-        .map(|(i, item)| {
-            // TODO: think about organising this code nicely. this is rapid-prototype-crap
-            // TODO: change between red and green text color instead
-            let prefix = if item.toggled { "[✓] - " } else { "[×] - " };
-            let res = ListItem::new(format!("{}{}", prefix, item.name));
-            if i == list.index {
-                // TODO: find a nicer way to highlight
-                res.style(Style::default().add_modifier(Modifier::BOLD))
-            } else {
-                res
-            }
-        })
-        .collect();
+    let items = list.lines();
 
     let block = Block::default().title("Checklist").borders(Borders::ALL);
     let checklist = List::new(items).block(block);
