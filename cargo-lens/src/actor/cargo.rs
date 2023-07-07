@@ -12,18 +12,48 @@ pub enum RankedDiagnostic {
     Help(Diagnostic),
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum AsyncCargoNtfn {
+    Nothing,
+    Warnings,
+    Errors,
+}
+
+impl From<&Vec<RankedDiagnostic>> for AsyncCargoNtfn {
+    fn from(values: &Vec<RankedDiagnostic>) -> Self {
+        if values.is_empty() {
+            return Self::Nothing;
+        }
+        let mut has_warns = false;
+        values
+            .iter()
+            .find_map(|val| match val {
+                RankedDiagnostic::Error(_) => Some(Self::Errors),
+                RankedDiagnostic::Warn(_) => {
+                    has_warns = true;
+                    None
+                }
+                _ => None,
+            })
+            .unwrap_or(if has_warns {
+                Self::Warnings
+            } else {
+                Self::Nothing
+            })
+    }
+}
 /// For traits that you wish to implement with cargo, such as [DiagnosticImport]
-pub struct CargoDispatcher;
+pub struct CargoActor;
 
 #[cfg_attr(test, mockall::automock(type Error=();))]
-pub trait DiagnosticImport: Sized {
-    type Error: Sized;
+pub trait CargoImport: Sized {
+    type Error: std::fmt::Debug + Sized;
     fn fetch() -> Result<Vec<RankedDiagnostic>, Self::Error>;
 }
 
-impl DiagnosticImport for CargoDispatcher {
+impl CargoImport for CargoActor {
     type Error = std::io::Error;
-    fn fetch() -> Result<Vec<RankedDiagnostic>, <Self as DiagnosticImport>::Error> {
+    fn fetch() -> Result<Vec<RankedDiagnostic>, <Self as CargoImport>::Error> {
         let args = vec!["check", "--message-format=json"];
         #[cfg(feature = "debug_socket")]
         let args = {
@@ -36,6 +66,7 @@ impl DiagnosticImport for CargoDispatcher {
         let mut command = Command::new("cargo")
             .args(args)
             .stdout(Stdio::piped())
+            .stderr(Stdio::null())
             .spawn()
             .unwrap();
         let reader = std::io::BufReader::new(command.stdout.take().unwrap());

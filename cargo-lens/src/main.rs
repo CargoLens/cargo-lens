@@ -1,7 +1,8 @@
 #![warn(unused_crate_dependencies)]
 
+use actor::cargo::RankedDiagnostic;
 use crossterm::{
-    event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode},
+    event::{self, DisableMouseCapture, EnableMouseCapture, Event},
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
@@ -14,15 +15,17 @@ use ratatui::{
 };
 use std::{error::Error, io};
 
+mod actor;
 #[cfg(feature = "debug_socket")]
 mod debug;
-mod diagnostics;
+mod events;
 /// Overrides std-provided print macros so it doesn't interfere with the terminal.
 /// To use the std-print macros, call with `std::[e]print[ln]!`
 mod print_macros;
 mod review_req_checklist;
 
-use crate::diagnostics::{CargoDispatcher, DiagnosticImport};
+use actor::cargo::{CargoActor, CargoImport};
+use events::*;
 
 fn main() -> Result<(), Box<dyn Error>> {
     cfg_if::cfg_if! {
@@ -35,7 +38,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         }
     }
 
-    let _msg = <CargoDispatcher as DiagnosticImport>::fetch();
+    let _msg = <CargoActor as CargoImport>::fetch();
     // Give something to diagnose: debugger should see a warning
     #[cfg(feature = "debug_socket")]
     {
@@ -51,7 +54,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut terminal = Terminal::new(backend)?;
 
     // create app and run it
-    let res = run_app(&mut terminal);
+    let res = event_loop(&mut terminal);
 
     // restore terminal
     disable_raw_mode()?;
@@ -69,29 +72,77 @@ fn main() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-fn run_app<B: Backend>(terminal: &mut Terminal<B>) -> io::Result<()> {
+fn event_loop<B: Backend>(terminal: &mut Terminal<B>) -> io::Result<()> {
     let mut list = review_req_checklist::foo_bar_list();
-    loop {
-        terminal.draw(|f| ui(f, &mut list))?;
 
-        if let Event::Key(key) = event::read()? {
-            match key.code {
-                KeyCode::Char('q') => return Ok(()),
-                KeyCode::Down => {
-                    list.down();
-                }
-                KeyCode::Up => {
-                    list.up();
-                }
-                KeyCode::Tab => {
-                    let item = list.items.get_mut(list.index).expect("index out of range");
-                    item.toggled = !item.toggled;
-                }
+    let (xterm_event_tx, xterm_event_rx) =
+        crossbeam::channel::unbounded::<std::io::Result<Event>>();
+    let (cargo_tx, cargo_rx) = crossbeam::channel::unbounded::<
+        Result<Vec<RankedDiagnostic>, <CargoActor as CargoImport>::Error>,
+    >();
 
-                _ => (),
+    std::thread::Builder::new()
+        .name("crossterm-event-reader".to_string())
+        .spawn(move || loop {
+            // TODO: a story to unblock + shutdown gracefully
+            xterm_event_tx
+                .send(event::read())
+                .expect("todo: handle actor channel fail story");
+        })
+        .unwrap();
+    std::thread::Builder::new()
+        .name("cargo-fetcher".to_string())
+        .spawn(move || {
+            let res = <CargoActor as CargoImport>::fetch();
+            cargo_tx
+                .send(res)
+                .expect("todo: handle actor channel fail story");
+            loop {
+                // TODO?: have a receiver to request a new diagnostic from cargo?
+                std::thread::park();
+            }
+        })
+        .unwrap();
+
+    terminal.draw(|f| ui(f, &mut list))?;
+    'outer: loop {
+        let mut redraw = false;
+
+        // While there are messages on any channel, handle them and set redraw to true
+        loop {
+            /* redraw |= */
+            for event in select_event::<CargoActor>(&xterm_event_rx, &cargo_rx)
+                .expect("todo...")
+                .iter()
+            {
+                let needs_redraw = match event {
+                    QueueEvent::AsyncEvent(AsyncNtfn::Cargo(_ntfn)) => {
+                        println!("{:?}", _ntfn);
+                        continue;
+                    }
+                    QueueEvent::AsyncEvent(AsyncNtfn::_App(_app)) => todo!(),
+                    QueueEvent::InputEvent(Ok(Event::Key(k))) => match k.code {
+                        event::KeyCode::Up => list.up(),
+                        event::KeyCode::Down => list.down(),
+                        event::KeyCode::Char('q') => break 'outer,
+                        _ => continue,
+                    },
+                    QueueEvent::InputEvent(_) => continue,
+                };
+                if needs_redraw {
+                    redraw = true;
+                }
+            }
+            if redraw {
+                break;
             }
         }
+
+        if redraw {
+            terminal.draw(|f| ui(f, &mut list))?;
+        }
     }
+    Ok(())
 }
 
 fn ui<const LEN: usize, B: Backend>(
