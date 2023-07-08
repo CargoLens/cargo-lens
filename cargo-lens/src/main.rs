@@ -86,7 +86,7 @@ fn event_loop<B: Backend>(terminal: &mut Terminal<B>, mut app: App<B>) -> io::Re
     // TODO: fully drain the event queue on each iteration
     loop {
         match select_event::<CargoActor>(&xterm_event_rx, &cargo_rx).expect("todo...") {
-            QueueEvent::AsyncEvent(AsyncNtfn::Cargo(ntfn)) => app.list.set_cargo_ntfn(ntfn),
+            QueueEvent::AsyncEvent(AsyncNtfn::Cargo(ntfn)) => app.list.set_cargo_ntfn(&ntfn),
             QueueEvent::AsyncEvent(AsyncNtfn::_App(_app)) => todo!(),
             QueueEvent::InputEvent(Ok(Event::Key(k))) => match k.code {
                 event::KeyCode::Up => {

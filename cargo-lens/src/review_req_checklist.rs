@@ -59,7 +59,7 @@ impl ReviewReqChecklist {
 
         *item = !*item;
     }
-    pub fn set_cargo_ntfn(&mut self, state: Vec<Diagnostic>) {
+    pub fn set_cargo_ntfn(&mut self, state: &[Diagnostic]) {
         self.cargo_status.info = state.iter().map(|d| format!("{}", d)).collect();
     }
 }

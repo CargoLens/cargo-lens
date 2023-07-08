@@ -35,7 +35,7 @@ impl CargoImport for CargoActor {
         let mut res = vec![];
         for msg in stream {
             match msg {
-                Ok(Message::CompilerMessage(good_msg)) => res.push(good_msg.message.into()),
+                Ok(Message::CompilerMessage(good_msg)) => res.push(good_msg.message),
                 Ok(Message::BuildFinished(_)) => break,
                 _ => continue,
             }
