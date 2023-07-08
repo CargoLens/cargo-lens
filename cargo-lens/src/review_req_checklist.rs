@@ -2,7 +2,7 @@ use cargo_metadata::diagnostic::Diagnostic;
 
 #[derive(Debug)]
 pub struct ReviewReqChecklist {
-    pub cargo_status: ReviewReqChecklistItem,
+    pub cargo_status: (String, Vec<Diagnostic>, bool),
     pub items: Vec<ReviewReqChecklistItem>,
     pub index: usize,
 }
@@ -10,11 +10,7 @@ pub struct ReviewReqChecklist {
 impl ReviewReqChecklist {
     pub fn new(items: Vec<ReviewReqChecklistItem>) -> Self {
         Self {
-            cargo_status: ReviewReqChecklistItem {
-                name: "cargo status: ".to_string(),
-                info: String::new(),
-                toggled: false,
-            },
+            cargo_status: ("cargo status: ".to_string(), vec![], false),
             items,
             index: 0,
         }
@@ -39,7 +35,7 @@ impl ReviewReqChecklist {
 
     pub fn info(&self) -> Option<&String> {
         if self.index == 0 {
-            Some(&self.cargo_status.info)
+            Some(&self.cargo_status.0)
         } else {
             let res = self.items.get(self.index - 1).map(|ent| &ent.info);
             debug_assert!(res.is_some(), "list index outside of indexable range");
@@ -48,7 +44,7 @@ impl ReviewReqChecklist {
     }
     pub fn toggle(&mut self) {
         let item = if self.index == 0 {
-            &mut self.cargo_status.toggled
+            &mut self.cargo_status.2
         } else {
             &mut self
                 .items
@@ -59,8 +55,8 @@ impl ReviewReqChecklist {
 
         *item = !*item;
     }
-    pub fn set_cargo_ntfn(&mut self, state: &[Diagnostic]) {
-        self.cargo_status.info = state.iter().map(|d| format!("{}", d)).collect();
+    pub fn set_cargo_ntfn(&mut self, state: Vec<Diagnostic>) {
+        self.cargo_status.1 = state
     }
 }
 
