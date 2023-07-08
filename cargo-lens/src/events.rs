@@ -36,6 +36,9 @@ enum Updater {
     _NotifyWatcher,
 }
 
+// TODO: sane-ify this return type
+// TODO: make GH issue discussing error-handling pattern in the actor-channel flow
+#[allow(clippy::unnecessary_wraps)]
 pub fn _select_events<D: CargoImport>(
     input_rx: &Receiver<std::io::Result<Event>>,
     diagnostics_rx: &Receiver<Result<Vec<RankedDiagnostic>, D::Error>>,

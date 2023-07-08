@@ -1,3 +1,5 @@
+#![allow(clippy::uninlined_format_args)]
+#![allow(clippy::module_name_repetitions)]
 #![warn(unused_crate_dependencies)]
 
 use actor::cargo::RankedDiagnostic;
@@ -25,7 +27,7 @@ mod review_req_checklist;
 
 use actor::cargo::{CargoActor, CargoImport};
 use app::App;
-use events::*;
+use events::{select_event, AsyncNtfn, QueueEvent};
 
 fn main() -> Result<(), Box<dyn Error>> {
     cfg_if::cfg_if! {
@@ -112,6 +114,7 @@ fn event_loop<B: Backend>(terminal: &mut Terminal<B>, mut app: App<B>) -> io::Re
     Ok(())
 }
 
+#[allow(clippy::type_complexity)]
 fn start_actors() -> (
     Receiver<Result<Vec<RankedDiagnostic>, <CargoActor as CargoImport>::Error>>,
     Receiver<std::io::Result<Event>>,

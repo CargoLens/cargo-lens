@@ -18,6 +18,7 @@ pub struct App<B> {
     _phantom: PhantomData<B>,
 }
 impl<B: Backend> App<B> {
+    #[must_use]
     pub fn new(list: ReviewReqChecklist) -> Self {
         Self {
             list,
@@ -25,6 +26,8 @@ impl<B: Backend> App<B> {
         }
     }
 
+    // TODO: de-panic
+    #[allow(clippy::missing_panics_doc)]
     pub fn render(&self, f: &mut Frame<B>) {
         let chunks = Layout::default()
             .direction(Direction::Horizontal)
@@ -41,15 +44,12 @@ impl<B: Backend> App<B> {
                 .block(block);
         f.render_widget(info, chunks[1]);
     }
+
+    #[must_use]
     pub fn lines(&self) -> Vec<ListItem> {
         let tick = "✓";
         let cross = "×";
-        let span = |fill| -> Vec<Span> {
-            ["[", fill, "] - "]
-                .into_iter()
-                .map(|st: &str| Span::raw(st))
-                .collect()
-        };
+        let span = |fill| -> Vec<Span> { ["[", fill, "] - "].into_iter().map(Span::raw).collect() };
 
         let lines: Vec<ListItem> = self
             .list

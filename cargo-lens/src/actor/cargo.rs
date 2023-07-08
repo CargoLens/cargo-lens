@@ -42,7 +42,7 @@ impl From<&Vec<RankedDiagnostic>> for CargoState {
             })
     }
 }
-/// For traits that you wish to implement with cargo, such as [DiagnosticImport]
+/// For traits that you wish to implement with cargo, such as [`DiagnosticImport`]
 pub struct CargoActor;
 
 #[cfg_attr(test, mockall::automock(type Error=();))]
