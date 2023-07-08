@@ -104,46 +104,36 @@ fn event_loop<B: Backend>(terminal: &mut Terminal<B>) -> io::Result<()> {
         .unwrap();
 
     terminal.draw(|f| ui(f, &mut list))?;
-    'outer: loop {
-        let mut redraw = false;
 
-        // While there are messages on any channel, handle them and set redraw to true
-        loop {
-            /* redraw |= */
-            for event in select_event::<CargoActor>(&xterm_event_rx, &cargo_rx)
-                .expect("todo...")
-                .iter()
-            {
-                let needs_redraw = match event {
-                    QueueEvent::AsyncEvent(AsyncNtfn::Cargo(_ntfn)) => {
-                        println!("{:?}", _ntfn);
-                        continue;
-                    }
-                    QueueEvent::AsyncEvent(AsyncNtfn::_App(_app)) => todo!(),
-                    QueueEvent::InputEvent(Ok(Event::Key(k))) => match k.code {
-                        event::KeyCode::Up => list.up(),
-                        event::KeyCode::Down => list.down(),
-                        event::KeyCode::Tab => {
-                            list.items[list.index].toggled = !list.items[list.index].toggled;
-                            true
-                        }
-                        event::KeyCode::Char('q') => break 'outer,
-                        _ => continue,
-                    },
-                    QueueEvent::InputEvent(_) => continue,
-                };
-                if needs_redraw {
-                    redraw = true;
+    // TODO: set things up so redraw only when necisary.
+    // TODO: fully drain the event queue on each iteration
+    loop {
+        /* redraw |= */
+        match select_event::<CargoActor>(&xterm_event_rx, &cargo_rx).expect("todo...") {
+            QueueEvent::AsyncEvent(AsyncNtfn::Cargo(ntfn)) => match ntfn {
+                actor::cargo::CargoState::Nothing => {
+                    println!("todo: cargo state nothing -> update list");
                 }
-            }
-            if redraw {
-                break;
-            }
-        }
-
-        if redraw {
-            terminal.draw(|f| ui(f, &mut list))?;
-        }
+                actor::cargo::CargoState::Warnings => todo!(),
+                actor::cargo::CargoState::Errors => todo!(),
+            },
+            QueueEvent::AsyncEvent(AsyncNtfn::_App(_app)) => todo!(),
+            QueueEvent::InputEvent(Ok(Event::Key(k))) => match k.code {
+                event::KeyCode::Up => {
+                    list.up();
+                }
+                event::KeyCode::Down => {
+                    list.down();
+                }
+                event::KeyCode::Tab => {
+                    list.items[list.index].toggled = !list.items[list.index].toggled;
+                }
+                event::KeyCode::Char('q') => break,
+                _ => continue,
+            },
+            QueueEvent::InputEvent(_) => continue,
+        };
+        terminal.draw(|f| ui(f, &mut list))?;
     }
     Ok(())
 }

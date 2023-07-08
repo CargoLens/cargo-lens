@@ -2,7 +2,7 @@ use crossbeam::channel::{Receiver, RecvError, Select};
 use crossterm::event::Event;
 use non_empty_vec::NonEmpty;
 
-use crate::actor::cargo::{AsyncCargoNtfn, CargoImport, RankedDiagnostic};
+use crate::actor::cargo::{CargoImport, CargoState, RankedDiagnostic};
 
 pub enum QueueEvent {
     AsyncEvent(AsyncNtfn),
@@ -23,7 +23,7 @@ pub enum AsyncAppNtfn {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum AsyncNtfn {
     _App(AsyncAppNtfn),
-    Cargo(AsyncCargoNtfn),
+    Cargo(CargoState),
 }
 
 pub enum _SelectError {
@@ -36,7 +36,7 @@ enum Updater {
     _NotifyWatcher,
 }
 
-pub fn select_event<D: CargoImport>(
+pub fn _select_events<D: CargoImport>(
     input_rx: &Receiver<std::io::Result<Event>>,
     diagnostics_rx: &Receiver<Result<Vec<RankedDiagnostic>, D::Error>>,
 ) -> Result<NonEmpty<QueueEvent>, RecvError> {
@@ -58,7 +58,7 @@ pub fn select_event<D: CargoImport>(
             }
             1 => {
                 let Ok(Ok(ev)) = oper.recv(diagnostics_rx) else {continue};
-                let ntfn: AsyncCargoNtfn = (&ev).into();
+                let ntfn: CargoState = (&ev).into();
                 QueueEvent::AsyncEvent(AsyncNtfn::Cargo(ntfn))
             }
             _ => continue,
@@ -70,4 +70,30 @@ pub fn select_event<D: CargoImport>(
     }
 
     Ok(res.unwrap())
+}
+
+pub fn select_event<D: CargoImport>(
+    input_rx: &Receiver<std::io::Result<Event>>,
+    diagnostics_rx: &Receiver<Result<Vec<RankedDiagnostic>, D::Error>>,
+) -> Result<QueueEvent, RecvError> {
+    let mut sel = Select::new();
+
+    sel.recv(input_rx);
+    sel.recv(diagnostics_rx);
+
+    let oper = sel.select();
+    let index = oper.index();
+
+    let ev = match index {
+        0 => QueueEvent::InputEvent(oper.recv(input_rx)?),
+        1 => {
+            let ev = oper
+                .recv(diagnostics_rx)?
+                .expect("toodo: handle cargo import error when selecting event");
+            let ntfn: CargoState = (&ev).into();
+            QueueEvent::AsyncEvent(AsyncNtfn::Cargo(ntfn))
+        }
+        _ => todo!("handle other event/error"),
+    };
+    Ok(ev)
 }

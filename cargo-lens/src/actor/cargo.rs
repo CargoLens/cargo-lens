@@ -13,13 +13,13 @@ pub enum RankedDiagnostic {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum AsyncCargoNtfn {
+pub enum CargoState {
     Nothing,
     Warnings,
     Errors,
 }
 
-impl From<&Vec<RankedDiagnostic>> for AsyncCargoNtfn {
+impl From<&Vec<RankedDiagnostic>> for CargoState {
     fn from(values: &Vec<RankedDiagnostic>) -> Self {
         if values.is_empty() {
             return Self::Nothing;

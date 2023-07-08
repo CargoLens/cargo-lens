@@ -1,4 +1,5 @@
 use ratatui::{
+    style::{Modifier, Style},
     text::{Line, Span},
     widgets::ListItem,
 };
@@ -43,14 +44,20 @@ impl<const LEN: usize> ReviewReqChecklist<LEN> {
         let lines: Vec<ListItem> = self
             .items
             .iter()
-            .map(|item| {
+            .enumerate()
+            .map(|(i, item)| {
                 let mut spans = if item.toggled {
                     span(tick)
                 } else {
                     span(cross)
                 };
                 spans.push(Span::raw(&item.name));
-                ListItem::new(Line::from(spans))
+                let res = ListItem::new(Line::from(spans));
+                if i == self.index {
+                    res.style(Style::default().add_modifier(Modifier::BOLD))
+                } else {
+                    res
+                }
             })
             .collect();
         lines
