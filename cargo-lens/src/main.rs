@@ -76,7 +76,7 @@ fn event_loop<B: Backend>(terminal: &mut Terminal<B>) -> io::Result<()> {
     let mut list = review_req_checklist::foo_bar_list();
 
     let (cargo_rx, xterm_event_rx) = start_actors();
-    terminal.draw(|f| ui(f, &mut list))?;
+    terminal.draw(|f| render(f, &mut list))?;
 
     // TODO: set things up so redraw only when necisary.
     // TODO: fully drain the event queue on each iteration
@@ -106,12 +106,12 @@ fn event_loop<B: Backend>(terminal: &mut Terminal<B>) -> io::Result<()> {
             },
             QueueEvent::InputEvent(_) => continue,
         };
-        terminal.draw(|f| ui(f, &mut list))?;
+        terminal.draw(|f| render(f, &mut list))?;
     }
     Ok(())
 }
 
-fn ui<const LEN: usize, B: Backend>(
+fn render<const LEN: usize, B: Backend>(
     f: &mut Frame<B>,
     list: &mut review_req_checklist::ReviewReqChecklist<LEN>,
 ) {
