@@ -54,7 +54,12 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut terminal = Terminal::new(backend)?;
 
     // create app and run it
-    let res = event_loop(&mut terminal);
+    let list = review_req_checklist::foo_bar_list();
+    let app = App {
+        list,
+        _phantom: PhantomData,
+    };
+    let res = event_loop(&mut terminal, app);
 
     // restore terminal
     disable_raw_mode()?;
@@ -72,11 +77,9 @@ fn main() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-fn event_loop<B: Backend>(terminal: &mut Terminal<B>) -> io::Result<()> {
-    let mut list = review_req_checklist::foo_bar_list();
-
+fn event_loop<B: Backend>(terminal: &mut Terminal<B>, mut app: App<B>) -> io::Result<()> {
     let (cargo_rx, xterm_event_rx) = start_actors();
-    terminal.draw(|f| App::<B>::render(f, &mut list))?;
+    terminal.draw(|f| app.render(f))?;
 
     // TODO: set things up so redraw only when necisary.
     // TODO: fully drain the event queue on each iteration
@@ -93,41 +96,44 @@ fn event_loop<B: Backend>(terminal: &mut Terminal<B>) -> io::Result<()> {
             QueueEvent::AsyncEvent(AsyncNtfn::_App(_app)) => todo!(),
             QueueEvent::InputEvent(Ok(Event::Key(k))) => match k.code {
                 event::KeyCode::Up => {
-                    list.up();
+                    app.list.up();
                 }
                 event::KeyCode::Down => {
-                    list.down();
+                    app.list.down();
                 }
                 event::KeyCode::Tab => {
-                    list.items[list.index].toggled = !list.items[list.index].toggled;
+                    app.list.items[app.list.index].toggled =
+                        !app.list.items[app.list.index].toggled;
                 }
                 event::KeyCode::Char('q') => break,
                 _ => continue,
             },
             QueueEvent::InputEvent(_) => continue,
         };
-        terminal.draw(|f| App::<B>::render(f, &mut list))?;
+        terminal.draw(|f| app.render(f))?;
     }
     Ok(())
 }
 
 struct App<B> {
+    list: review_req_checklist::ReviewReqChecklist,
     _phantom: PhantomData<B>,
 }
 impl<B: Backend> App<B> {
-    fn render(f: &mut Frame<B>, list: &mut review_req_checklist::ReviewReqChecklist) {
+    fn render(&self, f: &mut Frame<B>) {
         let chunks = Layout::default()
             .direction(Direction::Horizontal)
             .constraints([Constraint::Percentage(30), Constraint::Min(0)].as_ref())
             .split(f.size());
-        let items = list.lines();
+        let items = self.list.lines();
 
         let block = Block::default().title("Checklist").borders(Borders::ALL);
         let checklist = List::new(items).block(block);
         f.render_widget(checklist, chunks[0]);
         let block = Block::default().title("Info").borders(Borders::ALL);
         let info =
-            Paragraph::new::<&str>(list.items.get(list.index).unwrap().info.as_ref()).block(block);
+            Paragraph::new::<&str>(self.list.items.get(self.list.index).unwrap().info.as_ref())
+                .block(block);
         f.render_widget(info, chunks[1]);
     }
 }
