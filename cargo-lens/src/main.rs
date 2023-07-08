@@ -115,10 +115,7 @@ struct App<B> {
     _phantom: PhantomData<B>,
 }
 impl<B: Backend> App<B> {
-    fn render<const LEN: usize>(
-        f: &mut Frame<B>,
-        list: &mut review_req_checklist::ReviewReqChecklist<LEN>,
-    ) {
+    fn render(f: &mut Frame<B>, list: &mut review_req_checklist::ReviewReqChecklist) {
         let chunks = Layout::default()
             .direction(Direction::Horizontal)
             .constraints([Constraint::Percentage(30), Constraint::Min(0)].as_ref())

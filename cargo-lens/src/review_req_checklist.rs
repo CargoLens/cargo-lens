@@ -5,18 +5,18 @@ use ratatui::{
 };
 
 #[derive(Debug)]
-pub struct ReviewReqChecklist<const LEN: usize> {
-    pub items: [ReviewReqChecklistItem; LEN],
+pub struct ReviewReqChecklist {
+    pub items: Vec<ReviewReqChecklistItem>,
     pub index: usize,
 }
 
-impl<const LEN: usize> ReviewReqChecklist<LEN> {
-    pub fn _new(items: [ReviewReqChecklistItem; LEN]) -> Self {
+impl ReviewReqChecklist {
+    pub fn _new(items: Vec<ReviewReqChecklistItem>) -> Self {
         Self { items, index: 0 }
     }
 
     pub fn down(&mut self) -> bool {
-        if self.index < LEN - 1 {
+        if self.index < self.items.len() - 1 {
             self.index += 1;
             true
         } else {
@@ -71,9 +71,9 @@ pub struct ReviewReqChecklistItem {
     pub toggled: bool,
 }
 
-pub fn foo_bar_list() -> ReviewReqChecklist<4> {
+pub fn foo_bar_list() -> ReviewReqChecklist {
     ReviewReqChecklist {
-        items: [
+        items: vec![
             ReviewReqChecklistItem {
                 name: "compiles".to_string(),
                 info: "TODO: extract json from compiler. Mark item as complete if good".to_string(),
