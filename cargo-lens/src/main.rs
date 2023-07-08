@@ -9,13 +9,12 @@ use crossterm::{
 };
 use ratatui::{
     backend::{Backend, CrosstermBackend},
-    layout::{Constraint, Direction, Layout},
-    widgets::{Block, Borders, List, Paragraph},
-    Frame, Terminal,
+    Terminal,
 };
-use std::{error::Error, io, marker::PhantomData};
+use std::{error::Error, io};
 
 mod actor;
+pub mod app;
 #[cfg(feature = "debug_socket")]
 mod debug;
 mod events;
@@ -25,6 +24,7 @@ mod print_macros;
 mod review_req_checklist;
 
 use actor::cargo::{CargoActor, CargoImport};
+use app::App;
 use events::*;
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -55,10 +55,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     // create app and run it
     let list = review_req_checklist::foo_bar_list();
-    let app = App {
-        list,
-        _phantom: PhantomData,
-    };
+    let app = App::new(list);
     let res = event_loop(&mut terminal, app);
 
     // restore terminal
@@ -113,29 +110,6 @@ fn event_loop<B: Backend>(terminal: &mut Terminal<B>, mut app: App<B>) -> io::Re
         terminal.draw(|f| app.render(f))?;
     }
     Ok(())
-}
-
-struct App<B> {
-    list: review_req_checklist::ReviewReqChecklist,
-    _phantom: PhantomData<B>,
-}
-impl<B: Backend> App<B> {
-    fn render(&self, f: &mut Frame<B>) {
-        let chunks = Layout::default()
-            .direction(Direction::Horizontal)
-            .constraints([Constraint::Percentage(30), Constraint::Min(0)].as_ref())
-            .split(f.size());
-        let items = self.list.lines();
-
-        let block = Block::default().title("Checklist").borders(Borders::ALL);
-        let checklist = List::new(items).block(block);
-        f.render_widget(checklist, chunks[0]);
-        let block = Block::default().title("Info").borders(Borders::ALL);
-        let info =
-            Paragraph::new::<&str>(self.list.items.get(self.list.index).unwrap().info.as_ref())
-                .block(block);
-        f.render_widget(info, chunks[1]);
-    }
 }
 
 fn start_actors() -> (
