@@ -82,7 +82,6 @@ fn event_loop<B: Backend>(terminal: &mut Terminal<B>, mut app: App<B>) -> io::Re
     let (cargo_rx, xterm_event_rx) = start_actors();
     terminal.draw(|f| app.render(f))?;
 
-    let foo = 1;
     // TODO: set things up so redraw only when necisary.
     // TODO: fully drain the event queue on each iteration
     loop {

@@ -41,19 +41,8 @@ impl<B: Backend> App<B> {
         f.render_widget(checklist, chunks[0]);
         let block = Block::default().title("Info").borders(Borders::ALL);
         let info = if self.list.index == 0 {
-            let paras: Vec<Paragraph> = self
-                .list
-                .cargo_status
-                .1
-                .iter()
-                .cloned()
-                .map(|d| DiagParagraph::from(d).0)
-                .collect();
-            paras
-                .get(0)
-                .unwrap_or(&Paragraph::new::<&str>("nothing from cargo..."))
-                .clone()
-                .block(block)
+            let paras: DiagParagraph = self.list.cargo_status.1.clone().into();
+            paras.0
         } else {
             Paragraph::new::<&str>(self.list.info().expect("internal error")).block(block)
         };
@@ -88,41 +77,42 @@ impl<B: Backend> App<B> {
 
 // get arround the orphan rule
 struct DiagParagraph<'a>(Paragraph<'a>);
-impl From<Diagnostic> for DiagParagraph<'_> {
-    fn from(value: Diagnostic) -> Self {
+impl From<Vec<Diagnostic>> for DiagParagraph<'_> {
+    fn from(values: Vec<Diagnostic>) -> Self {
         let mut spans = vec![];
 
-        let (level, color) = match value.level {
-            DiagnosticLevel::Error => ("error", Color::Red),
-            DiagnosticLevel::Warning => ("warning", Color::Yellow),
-            _ => ("info", Color::White),
-        };
+        for value in values {
+            let (level, color) = match value.level {
+                DiagnosticLevel::Error => ("error", Color::Red),
+                DiagnosticLevel::Warning => ("warning", Color::Yellow),
+                _ => ("info", Color::White),
+            };
 
-        // Create the heading for the diagnostic
-        let heading = Span::styled(
-            format!("{}: {}", level, value.message),
-            Style::default().fg(color).add_modifier(Modifier::BOLD),
-        );
-        spans.push(Line::from(heading));
-
-        // If there is a code snippet, add it
-        if let Some(code) = value.code.as_ref() {
-            let code_span = Span::styled(
-                format!("  --> {}\n", code.code),
-                Style::default().fg(Color::Green),
+            // Create the heading for the diagnostic
+            let heading = Span::styled(
+                format!("{}: {}", level, value.message),
+                Style::default().fg(color).add_modifier(Modifier::BOLD),
             );
-            spans.push(Line::from(code_span));
-        }
+            spans.push(Line::from(heading));
 
-        // Include each rendered line of the diagnostic message
-        for line in value.rendered.unwrap().lines() {
-            let line_span = Span::styled(
-                format!("     {}\n", line),
-                Style::default().fg(Color::Yellow),
-            );
-            spans.push(Line::from(line_span));
-        }
+            // If there is a code snippet, add it
+            if let Some(code) = value.code.as_ref() {
+                let code_span = Span::styled(
+                    format!("  --> {}\n", code.code),
+                    Style::default().fg(Color::Green),
+                );
+                spans.push(Line::from(code_span));
+            }
 
+            // Include each rendered line of the diagnostic message
+            for line in value.rendered.unwrap().lines() {
+                let line_span = Span::styled(
+                    format!("     {}\n", line),
+                    Style::default().fg(Color::Yellow),
+                );
+                spans.push(Line::from(line_span));
+            }
+        }
         let text: Text = spans.into();
         let para = Paragraph::new(text);
         Self(para)
