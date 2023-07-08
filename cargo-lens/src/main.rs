@@ -29,6 +29,8 @@ use actor::cargo::{CargoActor, CargoImport};
 use app::App;
 use events::{select_event, AsyncNtfn, QueueEvent};
 
+use crate::review_req_checklist::ReviewReqChecklist;
+
 fn main() -> Result<(), Box<dyn Error>> {
     cfg_if::cfg_if! {
         if #[cfg(feature = "debug_socket")] {
@@ -56,7 +58,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut terminal = Terminal::new(backend)?;
 
     // create app and run it
-    let list = review_req_checklist::foo_bar_list();
+    let list = ReviewReqChecklist::new(review_req_checklist::foo_bar_items());
     let app = App::new(list);
     let res = event_loop(&mut terminal, app);
 
@@ -83,7 +85,6 @@ fn event_loop<B: Backend>(terminal: &mut Terminal<B>, mut app: App<B>) -> io::Re
     // TODO: set things up so redraw only when necisary.
     // TODO: fully drain the event queue on each iteration
     loop {
-        /* redraw |= */
         match select_event::<CargoActor>(&xterm_event_rx, &cargo_rx).expect("todo...") {
             QueueEvent::AsyncEvent(AsyncNtfn::Cargo(ntfn)) => match ntfn {
                 actor::cargo::CargoState::Nothing => {
@@ -101,8 +102,7 @@ fn event_loop<B: Backend>(terminal: &mut Terminal<B>, mut app: App<B>) -> io::Re
                     app.list.down();
                 }
                 event::KeyCode::Tab => {
-                    app.list.items[app.list.index].toggled =
-                        !app.list.items[app.list.index].toggled;
+                    app.list.toggle();
                 }
                 event::KeyCode::Char('q') => break,
                 _ => continue,

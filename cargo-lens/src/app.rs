@@ -39,9 +39,7 @@ impl<B: Backend> App<B> {
         let checklist = List::new(items).block(block);
         f.render_widget(checklist, chunks[0]);
         let block = Block::default().title("Info").borders(Borders::ALL);
-        let info =
-            Paragraph::new::<&str>(self.list.items.get(self.list.index).unwrap().info.as_ref())
-                .block(block);
+        let info = Paragraph::new::<&str>(self.list.info().expect("internal error")).block(block);
         f.render_widget(info, chunks[1]);
     }
 
@@ -51,10 +49,8 @@ impl<B: Backend> App<B> {
         let cross = "×";
         let span = |fill| -> Vec<Span> { ["[", fill, "] - "].into_iter().map(Span::raw).collect() };
 
-        let lines: Vec<ListItem> = self
-            .list
-            .items
-            .iter()
+        let lines: Vec<ListItem> = std::iter::once(&self.list.cargo_status)
+            .chain(self.list.items.iter())
             .enumerate()
             .map(|(i, item)| {
                 let mut spans = if item.toggled {
