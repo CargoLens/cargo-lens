@@ -13,7 +13,7 @@ use ratatui::{
     widgets::{Block, Borders, List, Paragraph},
     Frame, Terminal,
 };
-use std::{error::Error, io};
+use std::{error::Error, io, marker::PhantomData};
 
 mod actor;
 #[cfg(feature = "debug_socket")]
@@ -76,7 +76,7 @@ fn event_loop<B: Backend>(terminal: &mut Terminal<B>) -> io::Result<()> {
     let mut list = review_req_checklist::foo_bar_list();
 
     let (cargo_rx, xterm_event_rx) = start_actors();
-    terminal.draw(|f| render(f, &mut list))?;
+    terminal.draw(|f| App::<B>::render(f, &mut list))?;
 
     // TODO: set things up so redraw only when necisary.
     // TODO: fully drain the event queue on each iteration
@@ -106,28 +106,33 @@ fn event_loop<B: Backend>(terminal: &mut Terminal<B>) -> io::Result<()> {
             },
             QueueEvent::InputEvent(_) => continue,
         };
-        terminal.draw(|f| render(f, &mut list))?;
+        terminal.draw(|f| App::<B>::render(f, &mut list))?;
     }
     Ok(())
 }
 
-fn render<const LEN: usize, B: Backend>(
-    f: &mut Frame<B>,
-    list: &mut review_req_checklist::ReviewReqChecklist<LEN>,
-) {
-    let chunks = Layout::default()
-        .direction(Direction::Horizontal)
-        .constraints([Constraint::Percentage(30), Constraint::Min(0)].as_ref())
-        .split(f.size());
-    let items = list.lines();
+struct App<B> {
+    _phantom: PhantomData<B>,
+}
+impl<B: Backend> App<B> {
+    fn render<const LEN: usize>(
+        f: &mut Frame<B>,
+        list: &mut review_req_checklist::ReviewReqChecklist<LEN>,
+    ) {
+        let chunks = Layout::default()
+            .direction(Direction::Horizontal)
+            .constraints([Constraint::Percentage(30), Constraint::Min(0)].as_ref())
+            .split(f.size());
+        let items = list.lines();
 
-    let block = Block::default().title("Checklist").borders(Borders::ALL);
-    let checklist = List::new(items).block(block);
-    f.render_widget(checklist, chunks[0]);
-    let block = Block::default().title("Info").borders(Borders::ALL);
-    let info =
-        Paragraph::new::<&str>(list.items.get(list.index).unwrap().info.as_ref()).block(block);
-    f.render_widget(info, chunks[1]);
+        let block = Block::default().title("Checklist").borders(Borders::ALL);
+        let checklist = List::new(items).block(block);
+        f.render_widget(checklist, chunks[0]);
+        let block = Block::default().title("Info").borders(Borders::ALL);
+        let info =
+            Paragraph::new::<&str>(list.items.get(list.index).unwrap().info.as_ref()).block(block);
+        f.render_widget(info, chunks[1]);
+    }
 }
 
 fn start_actors() -> (
