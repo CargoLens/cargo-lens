@@ -1,5 +1,3 @@
-use crate::actor::cargo::CargoState;
-
 #[derive(Debug)]
 pub struct ReviewReqChecklist {
     pub cargo_status: ReviewReqChecklistItem,
@@ -59,14 +57,14 @@ impl ReviewReqChecklist {
 
         *item = !*item;
     }
-    pub fn set_cargo_ntfn(&mut self, state: CargoState) {
-        let para = match state {
-            CargoState::Nothing => "good to go",
-            CargoState::Warnings => "you have warnings",
-            CargoState::Errors => "you have errors!",
-        };
-        self.cargo_status.info = String::from(para);
-    }
+    // pub fn set_cargo_ntfn(&mut self, state: CargoState) {
+    //     let para = match state {
+    //         CargoState::Nothing => "good to go",
+    //         CargoState::Warnings => "you have warnings",
+    //         CargoState::Errors => "you have errors!",
+    //     };
+    //     self.cargo_status.info = String::from(para);
+    // }
 }
 
 #[derive(Default, Debug)]

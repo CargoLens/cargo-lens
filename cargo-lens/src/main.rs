@@ -2,7 +2,7 @@
 #![allow(clippy::module_name_repetitions)]
 #![warn(unused_crate_dependencies)]
 
-use actor::cargo::RankedDiagnostic;
+use cargo_metadata::diagnostic::Diagnostic;
 use crossbeam::channel::Receiver;
 use crossterm::{
     event::{self, DisableMouseCapture, EnableMouseCapture, Event},
@@ -110,11 +110,11 @@ fn event_loop<B: Backend>(terminal: &mut Terminal<B>, mut app: App<B>) -> io::Re
 
 #[allow(clippy::type_complexity)]
 fn start_actors() -> (
-    Receiver<Result<Vec<RankedDiagnostic>, <CargoActor as CargoImport>::Error>>,
+    Receiver<Result<Vec<Diagnostic>, <CargoActor as CargoImport>::Error>>,
     Receiver<std::io::Result<Event>>,
 ) {
     let (cargo_tx, cargo_rx) = crossbeam::channel::unbounded::<
-        Result<Vec<RankedDiagnostic>, <CargoActor as CargoImport>::Error>,
+        Result<Vec<Diagnostic>, <CargoActor as CargoImport>::Error>,
     >();
     let (xterm_event_tx, xterm_event_rx) =
         crossbeam::channel::unbounded::<std::io::Result<Event>>();
