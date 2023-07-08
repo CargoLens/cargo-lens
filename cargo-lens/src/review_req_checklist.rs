@@ -1,8 +1,4 @@
-use ratatui::{
-    style::{Modifier, Style},
-    text::{Line, Span},
-    widgets::ListItem,
-};
+
 
 #[derive(Debug)]
 pub struct ReviewReqChecklist {
@@ -30,37 +26,6 @@ impl ReviewReqChecklist {
         } else {
             false
         }
-    }
-    pub fn lines(&self) -> Vec<ListItem> {
-        let tick = "✓";
-        let cross = "×";
-        let span = |fill| -> Vec<Span> {
-            ["[", fill, "] - "]
-                .into_iter()
-                .map(|st: &str| Span::raw(st))
-                .collect()
-        };
-
-        let lines: Vec<ListItem> = self
-            .items
-            .iter()
-            .enumerate()
-            .map(|(i, item)| {
-                let mut spans = if item.toggled {
-                    span(tick)
-                } else {
-                    span(cross)
-                };
-                spans.push(Span::raw(&item.name));
-                let res = ListItem::new(Line::from(spans));
-                if i == self.index {
-                    res.style(Style::default().add_modifier(Modifier::BOLD))
-                } else {
-                    res
-                }
-            })
-            .collect();
-        lines
     }
 }
 
