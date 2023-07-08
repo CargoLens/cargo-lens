@@ -21,7 +21,7 @@ pub enum AsyncAppNtfn {
     _SyntaxHighlighting(SyntaxHighlightProgress),
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum AsyncNtfn {
     _App(AsyncAppNtfn),
     Cargo(Vec<Diagnostic>),
@@ -62,7 +62,7 @@ pub fn _select_events<D: CargoImport>(
             }
             1 => {
                 let Ok(Ok(ev)) = oper.recv(diagnostics_rx) else {continue};
-                QueueEvent::AsyncEvent(AsyncNtfn::Cargo(ntfn))
+                QueueEvent::AsyncEvent(AsyncNtfn::Cargo(ev))
             }
             _ => continue,
         };
@@ -93,7 +93,7 @@ pub fn select_event<D: CargoImport>(
             let ev = oper
                 .recv(diagnostics_rx)?
                 .expect("toodo: handle cargo import error when selecting event");
-            QueueEvent::AsyncEvent(AsyncNtfn::Cargo(ntfn))
+            QueueEvent::AsyncEvent(AsyncNtfn::Cargo(ev))
         }
         _ => todo!("handle other event/error"),
     };

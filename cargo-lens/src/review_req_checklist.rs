@@ -1,3 +1,5 @@
+use cargo_metadata::diagnostic::Diagnostic;
+
 #[derive(Debug)]
 pub struct ReviewReqChecklist {
     pub cargo_status: ReviewReqChecklistItem,
@@ -57,14 +59,9 @@ impl ReviewReqChecklist {
 
         *item = !*item;
     }
-    // pub fn set_cargo_ntfn(&mut self, state: CargoState) {
-    //     let para = match state {
-    //         CargoState::Nothing => "good to go",
-    //         CargoState::Warnings => "you have warnings",
-    //         CargoState::Errors => "you have errors!",
-    //     };
-    //     self.cargo_status.info = String::from(para);
-    // }
+    pub fn set_cargo_ntfn(&mut self, state: Vec<Diagnostic>) {
+        self.cargo_status.info = state.iter().map(|d| format!("{}", d)).collect();
+    }
 }
 
 #[derive(Default, Debug)]
