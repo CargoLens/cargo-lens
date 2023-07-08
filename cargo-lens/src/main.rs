@@ -1,6 +1,7 @@
 #![warn(unused_crate_dependencies)]
 
 use actor::cargo::RankedDiagnostic;
+use crossbeam::channel::Receiver;
 use crossterm::{
     event::{self, DisableMouseCapture, EnableMouseCapture, Event},
     execute,
@@ -74,35 +75,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 fn event_loop<B: Backend>(terminal: &mut Terminal<B>) -> io::Result<()> {
     let mut list = review_req_checklist::foo_bar_list();
 
-    let (xterm_event_tx, xterm_event_rx) =
-        crossbeam::channel::unbounded::<std::io::Result<Event>>();
-    let (cargo_tx, cargo_rx) = crossbeam::channel::unbounded::<
-        Result<Vec<RankedDiagnostic>, <CargoActor as CargoImport>::Error>,
-    >();
-
-    std::thread::Builder::new()
-        .name("crossterm-event-reader".to_string())
-        .spawn(move || loop {
-            // TODO: a story to unblock + shutdown gracefully
-            xterm_event_tx
-                .send(event::read())
-                .expect("todo: handle actor channel fail story");
-        })
-        .unwrap();
-    std::thread::Builder::new()
-        .name("cargo-fetcher".to_string())
-        .spawn(move || {
-            let res = <CargoActor as CargoImport>::fetch();
-            cargo_tx
-                .send(res)
-                .expect("todo: handle actor channel fail story");
-            loop {
-                // TODO?: have a receiver to request a new diagnostic from cargo?
-                std::thread::park();
-            }
-        })
-        .unwrap();
-
+    let (cargo_rx, xterm_event_rx) = start_actors();
     terminal.draw(|f| ui(f, &mut list))?;
 
     // TODO: set things up so redraw only when necisary.
@@ -155,4 +128,39 @@ fn ui<const LEN: usize, B: Backend>(
     let info =
         Paragraph::new::<&str>(list.items.get(list.index).unwrap().info.as_ref()).block(block);
     f.render_widget(info, chunks[1]);
+}
+
+fn start_actors() -> (
+    Receiver<Result<Vec<RankedDiagnostic>, <CargoActor as CargoImport>::Error>>,
+    Receiver<std::io::Result<Event>>,
+) {
+    let (cargo_tx, cargo_rx) = crossbeam::channel::unbounded::<
+        Result<Vec<RankedDiagnostic>, <CargoActor as CargoImport>::Error>,
+    >();
+    let (xterm_event_tx, xterm_event_rx) =
+        crossbeam::channel::unbounded::<std::io::Result<Event>>();
+
+    std::thread::Builder::new()
+        .name("crossterm-event-reader".to_string())
+        .spawn(move || loop {
+            // TODO: a story to unblock + shutdown gracefully
+            xterm_event_tx
+                .send(event::read())
+                .expect("todo: handle actor channel fail story");
+        })
+        .unwrap();
+    std::thread::Builder::new()
+        .name("cargo-fetcher".to_string())
+        .spawn(move || {
+            let res = <CargoActor as CargoImport>::fetch();
+            cargo_tx
+                .send(res)
+                .expect("todo: handle actor channel fail story");
+            loop {
+                // TODO?: have a receiver to request a new diagnostic from cargo?
+                std::thread::park();
+            }
+        })
+        .unwrap();
+    (cargo_rx, xterm_event_rx)
 }
