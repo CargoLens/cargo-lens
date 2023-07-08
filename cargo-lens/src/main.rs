@@ -1,6 +1,9 @@
+#![allow(clippy::uninlined_format_args)]
+#![allow(clippy::module_name_repetitions)]
 #![warn(unused_crate_dependencies)]
 
 use actor::cargo::RankedDiagnostic;
+use crossbeam::channel::Receiver;
 use crossterm::{
     event::{self, DisableMouseCapture, EnableMouseCapture, Event},
     execute,
@@ -8,14 +11,12 @@ use crossterm::{
 };
 use ratatui::{
     backend::{Backend, CrosstermBackend},
-    layout::{Constraint, Direction, Layout},
-    style::{Modifier, Style},
-    widgets::{Block, Borders, List, ListItem, Paragraph},
-    Frame, Terminal,
+    Terminal,
 };
 use std::{error::Error, io};
 
 mod actor;
+pub mod app;
 #[cfg(feature = "debug_socket")]
 mod debug;
 mod events;
@@ -25,7 +26,10 @@ mod print_macros;
 mod review_req_checklist;
 
 use actor::cargo::{CargoActor, CargoImport};
-use events::*;
+use app::App;
+use events::{select_event, AsyncNtfn, QueueEvent};
+
+use crate::review_req_checklist::ReviewReqChecklist;
 
 fn main() -> Result<(), Box<dyn Error>> {
     cfg_if::cfg_if! {
@@ -54,7 +58,9 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut terminal = Terminal::new(backend)?;
 
     // create app and run it
-    let res = event_loop(&mut terminal);
+    let list = ReviewReqChecklist::new(review_req_checklist::foo_bar_items());
+    let app = App::new(list);
+    let res = event_loop(&mut terminal, app);
 
     // restore terminal
     disable_raw_mode()?;
@@ -72,14 +78,46 @@ fn main() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-fn event_loop<B: Backend>(terminal: &mut Terminal<B>) -> io::Result<()> {
-    let mut list = review_req_checklist::foo_bar_list();
+fn event_loop<B: Backend>(terminal: &mut Terminal<B>, mut app: App<B>) -> io::Result<()> {
+    let (cargo_rx, xterm_event_rx) = start_actors();
+    terminal.draw(|f| app.render(f))?;
 
-    let (xterm_event_tx, xterm_event_rx) =
-        crossbeam::channel::unbounded::<std::io::Result<Event>>();
+    // TODO: set things up so redraw only when necisary.
+    // TODO: fully drain the event queue on each iteration
+    loop {
+        match select_event::<CargoActor>(&xterm_event_rx, &cargo_rx).expect("todo...") {
+            QueueEvent::AsyncEvent(AsyncNtfn::Cargo(ntfn)) => app.list.set_cargo_ntfn(ntfn),
+            QueueEvent::AsyncEvent(AsyncNtfn::_App(_app)) => todo!(),
+            QueueEvent::InputEvent(Ok(Event::Key(k))) => match k.code {
+                event::KeyCode::Up => {
+                    app.list.up();
+                }
+                event::KeyCode::Down => {
+                    app.list.down();
+                }
+                event::KeyCode::Tab => {
+                    app.list.toggle();
+                }
+                event::KeyCode::Char('q') => break,
+                _ => continue,
+            },
+            QueueEvent::InputEvent(_) => continue,
+        };
+        terminal.draw(|f| app.render(f))?;
+    }
+    Ok(())
+}
+
+#[allow(clippy::type_complexity)]
+fn start_actors() -> (
+    Receiver<Result<Vec<RankedDiagnostic>, <CargoActor as CargoImport>::Error>>,
+    Receiver<std::io::Result<Event>>,
+) {
     let (cargo_tx, cargo_rx) = crossbeam::channel::unbounded::<
         Result<Vec<RankedDiagnostic>, <CargoActor as CargoImport>::Error>,
     >();
+    let (xterm_event_tx, xterm_event_rx) =
+        crossbeam::channel::unbounded::<std::io::Result<Event>>();
 
     std::thread::Builder::new()
         .name("crossterm-event-reader".to_string())
@@ -103,79 +141,5 @@ fn event_loop<B: Backend>(terminal: &mut Terminal<B>) -> io::Result<()> {
             }
         })
         .unwrap();
-
-    terminal.draw(|f| ui(f, &mut list))?;
-    'outer: loop {
-        let mut redraw = false;
-
-        // While there are messages on any channel, handle them and set redraw to true
-        loop {
-            /* redraw |= */
-            for event in select_event::<CargoActor>(&xterm_event_rx, &cargo_rx)
-                .expect("todo...")
-                .iter()
-            {
-                let needs_redraw = match event {
-                    QueueEvent::AsyncEvent(AsyncNtfn::Cargo(_ntfn)) => {
-                        println!("{:?}", _ntfn);
-                        continue;
-                    }
-                    QueueEvent::AsyncEvent(AsyncNtfn::_App(_app)) => todo!(),
-                    QueueEvent::InputEvent(Ok(Event::Key(k))) => match k.code {
-                        event::KeyCode::Up => list.up(),
-                        event::KeyCode::Down => list.down(),
-                        event::KeyCode::Char('q') => break 'outer,
-                        _ => continue,
-                    },
-                    QueueEvent::InputEvent(_) => continue,
-                };
-                if needs_redraw {
-                    redraw = true;
-                }
-            }
-            if redraw {
-                break;
-            }
-        }
-
-        if redraw {
-            terminal.draw(|f| ui(f, &mut list))?;
-        }
-    }
-    Ok(())
-}
-
-fn ui<const LEN: usize, B: Backend>(
-    f: &mut Frame<B>,
-    list: &mut review_req_checklist::ReviewReqChecklist<LEN>,
-) {
-    let chunks = Layout::default()
-        .direction(Direction::Horizontal)
-        .constraints([Constraint::Percentage(30), Constraint::Min(0)].as_ref())
-        .split(f.size());
-    let items: Vec<_> = list
-        .items
-        .iter()
-        .enumerate()
-        .map(|(i, item)| {
-            // TODO: think about organising this code nicely. this is rapid-prototype-crap
-            // TODO: change between red and green text color instead
-            let prefix = if item.toggled { "[✓] - " } else { "[×] - " };
-            let res = ListItem::new(format!("{}{}", prefix, item.name));
-            if i == list.index {
-                // TODO: find a nicer way to highlight
-                res.style(Style::default().add_modifier(Modifier::BOLD))
-            } else {
-                res
-            }
-        })
-        .collect();
-
-    let block = Block::default().title("Checklist").borders(Borders::ALL);
-    let checklist = List::new(items).block(block);
-    f.render_widget(checklist, chunks[0]);
-    let block = Block::default().title("Info").borders(Borders::ALL);
-    let info =
-        Paragraph::new::<&str>(list.items.get(list.index).unwrap().info.as_ref()).block(block);
-    f.render_widget(info, chunks[1]);
+    (cargo_rx, xterm_event_rx)
 }
