@@ -80,20 +80,9 @@ pub struct ReviewReqChecklistItem {
 }
 
 pub fn foo_bar_items() -> Vec<ReviewReqChecklistItem> {
-    vec![
-            ReviewReqChecklistItem {
-                name: "compiles".to_string(),
-                info: "TODO: extract json from compiler. Mark item as complete if good".to_string(),
-                toggled: false,
-            },
-            ReviewReqChecklistItem {
-                name: "compiles without warnings".to_string(),
-                info: "TODO: extract json from compiler. Do something with list of warnings. have it affect the list item struct (e.g. auto toggle if no warnings)".to_string(),
-                toggled: false,
-            },
-            ReviewReqChecklistItem {
-                name: "Lints".to_string(),
-                info: "TODO: toggle tree to reveal available lints, which can be toggled,
+    vec![ReviewReqChecklistItem {
+        name: "Lints".to_string(),
+        info: "TODO: toggle tree to reveal available lints, which can be toggled,
 Each item, when indexed, would show the warnings it coveres
 also: think about how to aggregate, list, present warnings?
 the list-item might look like this when expanded:
@@ -108,13 +97,8 @@ the list-item might look like this when expanded:
   [×] perf
   [×] restriction
   [×] style
-  [×] suspicious".to_string(),
-                toggled: false,
-            },
-            ReviewReqChecklistItem {
-                name: "FizzBuzz".to_string(),
-                info: "could be any shared-multiple of 3 and 5".to_string(),
-                toggled: false,
-            },
-        ]
+  [×] suspicious"
+            .to_string(),
+        toggled: false,
+    }]
 }
