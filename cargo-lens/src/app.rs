@@ -38,6 +38,7 @@ impl<B: Backend> App<B> {
 
         let block = Block::default().title("Checklist").borders(Borders::ALL);
         let checklist = List::new(items).block(block);
+
         f.render_widget(checklist, chunks[0]);
         let block = Block::default().title("Info").borders(Borders::ALL);
         let info = if self.list.index == 0 {
@@ -63,7 +64,12 @@ impl<B: Backend> App<B> {
                 .map(|(i, (name, toggled))| {
                     let mut spans = if toggled { span(tick) } else { span(cross) };
                     spans.push(Span::raw(name));
-                    let res = ListItem::new(Line::from(spans));
+                    let mut line = Line::from(spans);
+                    if i == 0 {
+                        line.patch_style(Style::default().fg(self.list.cargo_color()));
+                    }
+                    let res = ListItem::new(line);
+
                     if i == self.list.index {
                         res.style(Style::default().add_modifier(Modifier::BOLD))
                     } else {

@@ -1,4 +1,5 @@
-use cargo_metadata::diagnostic::Diagnostic;
+use cargo_metadata::diagnostic::{Diagnostic, DiagnosticLevel};
+use ratatui::style::Color;
 
 #[derive(Debug)]
 pub struct ReviewReqChecklist {
@@ -57,6 +58,17 @@ impl ReviewReqChecklist {
     }
     pub fn set_cargo_ntfn(&mut self, state: Vec<Diagnostic>) {
         self.cargo_status.1 = state
+    }
+    pub fn cargo_color(&self) -> Color {
+        let mut res = Color::Green;
+        for diag in self.cargo_status.1.iter() {
+            if diag.level == DiagnosticLevel::Error {
+                return Color::Red;
+            } else if diag.level == DiagnosticLevel::Warning {
+                res = Color::Yellow;
+            }
+        }
+        res
     }
 }
 
