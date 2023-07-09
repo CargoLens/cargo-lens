@@ -1,8 +1,9 @@
+use cargo_metadata::diagnostic::Diagnostic;
 use crossbeam::channel::{Receiver, RecvError, Select};
 use crossterm::event::Event;
 use non_empty_vec::NonEmpty;
 
-use crate::actor::cargo::{CargoImport, CargoState, RankedDiagnostic};
+use crate::actor::cargo::CargoImport;
 
 pub enum QueueEvent {
     AsyncEvent(AsyncNtfn),
@@ -20,10 +21,10 @@ pub enum AsyncAppNtfn {
     _SyntaxHighlighting(SyntaxHighlightProgress),
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum AsyncNtfn {
     _App(AsyncAppNtfn),
-    Cargo(CargoState),
+    Cargo(Vec<Diagnostic>),
 }
 
 pub enum _SelectError {
@@ -41,7 +42,7 @@ enum Updater {
 #[allow(clippy::unnecessary_wraps)]
 pub fn _select_events<D: CargoImport>(
     input_rx: &Receiver<std::io::Result<Event>>,
-    diagnostics_rx: &Receiver<Result<Vec<RankedDiagnostic>, D::Error>>,
+    diagnostics_rx: &Receiver<Result<Vec<Diagnostic>, D::Error>>,
 ) -> Result<NonEmpty<QueueEvent>, RecvError> {
     let mut sel = Select::new();
 
@@ -61,8 +62,7 @@ pub fn _select_events<D: CargoImport>(
             }
             1 => {
                 let Ok(Ok(ev)) = oper.recv(diagnostics_rx) else {continue};
-                let ntfn: CargoState = (&ev).into();
-                QueueEvent::AsyncEvent(AsyncNtfn::Cargo(ntfn))
+                QueueEvent::AsyncEvent(AsyncNtfn::Cargo(ev))
             }
             _ => continue,
         };
@@ -77,7 +77,7 @@ pub fn _select_events<D: CargoImport>(
 
 pub fn select_event<D: CargoImport>(
     input_rx: &Receiver<std::io::Result<Event>>,
-    diagnostics_rx: &Receiver<Result<Vec<RankedDiagnostic>, D::Error>>,
+    diagnostics_rx: &Receiver<Result<Vec<Diagnostic>, D::Error>>,
 ) -> Result<QueueEvent, RecvError> {
     let mut sel = Select::new();
 
@@ -93,8 +93,7 @@ pub fn select_event<D: CargoImport>(
             let ev = oper
                 .recv(diagnostics_rx)?
                 .expect("toodo: handle cargo import error when selecting event");
-            let ntfn: CargoState = (&ev).into();
-            QueueEvent::AsyncEvent(AsyncNtfn::Cargo(ntfn))
+            QueueEvent::AsyncEvent(AsyncNtfn::Cargo(ev))
         }
         _ => todo!("handle other event/error"),
     };
