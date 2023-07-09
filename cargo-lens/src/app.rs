@@ -1,4 +1,4 @@
-use std::marker::PhantomData;
+use std::{cmp::Ordering, marker::PhantomData};
 
 use cargo_metadata::diagnostic::{Diagnostic, DiagnosticLevel};
 use ratatui::{
@@ -78,9 +78,22 @@ impl<B: Backend> App<B> {
 // get arround the orphan rule
 struct DiagParagraph<'a>(Paragraph<'a>);
 impl From<Vec<Diagnostic>> for DiagParagraph<'_> {
-    fn from(values: Vec<Diagnostic>) -> Self {
+    fn from(mut values: Vec<Diagnostic>) -> Self {
         let mut spans = vec![];
 
+        values.sort_by(|a, b| {
+            let a = a.level;
+            let b = b.level;
+            if a == b {
+                return Ordering::Equal;
+            }
+            match (a, b) {
+                (DiagnosticLevel::Error, _) => Ordering::Less,
+                (DiagnosticLevel::Warning, DiagnosticLevel::Error) => Ordering::Greater,
+                (DiagnosticLevel::Warning, _) => Ordering::Less,
+                _ => Ordering::Less,
+            }
+        });
         for value in values {
             let (level, color) = match value.level {
                 DiagnosticLevel::Error => ("error", Color::Red),
@@ -96,21 +109,12 @@ impl From<Vec<Diagnostic>> for DiagParagraph<'_> {
             spans.push(Line::from(heading));
 
             // If there is a code snippet, add it
-            if let Some(code) = value.code.as_ref() {
-                let code_span = Span::styled(
-                    format!("  --> {}\n", code.code),
-                    Style::default().fg(Color::Green),
-                );
+            for span in value.spans {
+                let code_span = Span::raw(format!(
+                    "  --> {}:{}:{}\n",
+                    span.file_name, span.line_start, span.column_start
+                ));
                 spans.push(Line::from(code_span));
-            }
-
-            // Include each rendered line of the diagnostic message
-            for line in value.rendered.unwrap().lines() {
-                let line_span = Span::styled(
-                    format!("     {}\n", line),
-                    Style::default().fg(Color::Yellow),
-                );
-                spans.push(Line::from(line_span));
             }
         }
         let text: Text = spans.into();
