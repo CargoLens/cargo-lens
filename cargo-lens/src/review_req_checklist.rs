@@ -57,11 +57,11 @@ impl ReviewReqChecklist {
         *item = !*item;
     }
     pub fn set_cargo_ntfn(&mut self, state: Vec<Diagnostic>) {
-        self.cargo_status.1 = state
+        self.cargo_status.1 = state;
     }
     pub fn cargo_color(&self) -> Color {
         let mut res = Color::Green;
-        for diag in self.cargo_status.1.iter() {
+        for diag in &self.cargo_status.1 {
             if diag.level == DiagnosticLevel::Error {
                 return Color::Red;
             } else if diag.level == DiagnosticLevel::Warning {

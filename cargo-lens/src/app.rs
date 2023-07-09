@@ -97,7 +97,7 @@ impl From<Vec<Diagnostic>> for DiagParagraph<'_> {
                 (DiagnosticLevel::Error, _) => Ordering::Less,
                 (DiagnosticLevel::Warning, DiagnosticLevel::Error) => Ordering::Greater,
                 (DiagnosticLevel::Warning, _) => Ordering::Less,
-                _ => Ordering::Less,
+                _ => Ordering::Greater,
             }
         });
         for value in values {
