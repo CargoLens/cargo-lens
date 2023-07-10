@@ -81,25 +81,27 @@ impl<B: Backend> App<B> {
     }
 }
 
+fn dia_sort(a: &Diagnostic, b: &Diagnostic) -> Ordering {
+    let a = a.level;
+    let b = b.level;
+    if a == b {
+        return Ordering::Equal;
+    }
+    match (a, b) {
+        (DiagnosticLevel::Error, _) => Ordering::Less,
+        (DiagnosticLevel::Warning, DiagnosticLevel::Error) => Ordering::Greater,
+        (DiagnosticLevel::Warning, _) => Ordering::Less,
+        _ => Ordering::Greater,
+    }
+}
+
 // get arround the orphan rule
 struct DiagParagraph<'a>(Paragraph<'a>);
 impl From<Vec<Diagnostic>> for DiagParagraph<'_> {
     fn from(mut values: Vec<Diagnostic>) -> Self {
         let mut spans = vec![];
 
-        values.sort_by(|a, b| {
-            let a = a.level;
-            let b = b.level;
-            if a == b {
-                return Ordering::Equal;
-            }
-            match (a, b) {
-                (DiagnosticLevel::Error, _) => Ordering::Less,
-                (DiagnosticLevel::Warning, DiagnosticLevel::Error) => Ordering::Greater,
-                (DiagnosticLevel::Warning, _) => Ordering::Less,
-                _ => Ordering::Greater,
-            }
-        });
+        values.sort_by(dia_sort);
         for value in values {
             let (level, color) = match value.level {
                 DiagnosticLevel::Error => ("error", Color::Red),
