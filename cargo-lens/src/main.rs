@@ -25,7 +25,7 @@ mod events;
 /// To use the std-print macros, call with `std::[e]print[ln]!`
 mod print_macros;
 
-use crate::components::checklist::{self, ReviewReqChecklist};
+use crate::components::checklist::ReviewReqChecklist;
 use actor::cargo::{CargoActor, CargoImport};
 use app::App;
 use events::{select_event, AsyncNtfn, QueueEvent};
@@ -57,7 +57,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut terminal = Terminal::new(backend)?;
 
     // create app and run it
-    let list = ReviewReqChecklist::new(checklist::foo_bar_items());
+    let list = ReviewReqChecklist::dev_new();
     let app = App::new(list);
     let res = event_loop(&mut terminal, app);
 
@@ -95,7 +95,7 @@ fn event_loop<B: Backend>(terminal: &mut Terminal<B>, mut app: App<B>) -> io::Re
                     app.list.down();
                 }
                 event::KeyCode::Tab => {
-                    app.list.toggle();
+                    // app.list.toggle();
                 }
                 event::KeyCode::Char('q') => break,
                 _ => continue,

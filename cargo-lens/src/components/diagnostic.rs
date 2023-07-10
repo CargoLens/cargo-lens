@@ -23,8 +23,11 @@ fn dia_sort(a: &Diagnostic, b: &Diagnostic) -> Ordering {
 
 // get arround the orphan rule
 pub struct DiagParagraph<'a>(pub Paragraph<'a>);
-impl From<Vec<Diagnostic>> for DiagParagraph<'_> {
-    fn from(mut values: Vec<Diagnostic>) -> Self {
+impl From<Option<Vec<Diagnostic>>> for DiagParagraph<'_> {
+    fn from(values: Option<Vec<Diagnostic>>) -> Self {
+        let Some(mut values) = values else {
+            return Self(Paragraph::new("waiting..."));
+        };
         let mut spans = vec![];
 
         values.sort_by(dia_sort);

@@ -3,23 +3,23 @@ use ratatui::style::Color;
 
 #[derive(Debug)]
 pub struct ReviewReqChecklist {
-    pub cargo_status: (String, Vec<Diagnostic>, bool),
-    pub items: Vec<ReviewReqChecklistItem>,
+    pub cargo_status: (String, Option<Vec<Diagnostic>>),
+    pub project_todo: (String, String),
     pub index: usize,
 }
 
 impl ReviewReqChecklist {
     #[must_use]
-    pub fn new(items: Vec<ReviewReqChecklistItem>) -> Self {
+    pub fn dev_new() -> Self {
         Self {
-            cargo_status: ("cargo status: ".to_string(), vec![], false),
-            items,
+            cargo_status: ("cargo status: ".to_string(), None),
+            project_todo: foo_bar_items(),
             index: 0,
         }
     }
 
     pub fn down(&mut self) -> bool {
-        if self.index < self.items.len() {
+        if self.index < 1 {
             self.index += 1;
             true
         } else {
@@ -40,31 +40,32 @@ impl ReviewReqChecklist {
         if self.index == 0 {
             Some(&self.cargo_status.0)
         } else {
-            let res = self.items.get(self.index - 1).map(|ent| &ent.info);
-            debug_assert!(res.is_some(), "list index outside of indexable range");
-            res
+            let res = &self.project_todo.1;
+            Some(res)
         }
     }
-    pub fn toggle(&mut self) {
-        let item = if self.index == 0 {
-            &mut self.cargo_status.2
-        } else {
-            &mut self
-                .items
-                .get_mut(self.index - 1)
-                .expect("malformed index")
-                .toggled
-        };
+    // pub fn toggle(&mut self) {
+    //     let item = if self.index == 0 {
+    //         &mut self.cargo_status.2
+    //     } else {
+    //         &mut self
+    //             .items
+    //             .get_mut(self.index - 1)
+    //             .expect("malformed index")
+    //             .toggled
+    //     };
 
-        *item = !*item;
-    }
+    //     *item = !*item;
+    // }
     pub fn set_cargo_ntfn(&mut self, state: Vec<Diagnostic>) {
-        self.cargo_status.1 = state;
+        self.cargo_status.1 = Some(state);
     }
     #[must_use]
     pub fn cargo_color(&self) -> Color {
+        let Some(ref diags) = self.cargo_status.1 else {return Color::Gray;};
+
         let mut res = Color::Green;
-        for diag in &self.cargo_status.1 {
+        for diag in diags {
             if diag.level == DiagnosticLevel::Error {
                 return Color::Red;
             } else if diag.level == DiagnosticLevel::Warning {
@@ -83,10 +84,10 @@ pub struct ReviewReqChecklistItem {
 }
 
 #[must_use]
-pub fn foo_bar_items() -> Vec<ReviewReqChecklistItem> {
-    vec![ReviewReqChecklistItem {
-        name: "Lints".to_string(),
-        info: "TODO: toggle tree to reveal available lints, which can be toggled,
+pub fn foo_bar_items() -> (String, String) {
+    (
+        "todo: lints".to_string(),
+        "TODO: toggle tree to reveal available lints, which can be toggled,
 Each item, when indexed, would show the warnings it coveres
 also: think about how to aggregate, list, present warnings?
 the list-item might look like this when expanded:
@@ -103,6 +104,5 @@ the list-item might look like this when expanded:
   [×] style
   [×] suspicious"
             .to_string(),
-        toggled: false,
-    }]
+    )
 }

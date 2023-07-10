@@ -44,38 +44,30 @@ impl<B: Backend> App<B> {
             let paras: DiagParagraph = self.list.cargo_status.1.clone().into();
             paras.0
         } else {
-            Paragraph::new::<&str>(self.list.info().expect("internal error")).block(block)
+            Paragraph::new::<&str>(&self.list.project_todo.1)
         };
 
-        f.render_widget(info, chunks[1]);
+        f.render_widget(info.block(block), chunks[1]);
     }
 
     #[must_use]
     pub fn lines(&self) -> Vec<ListItem> {
-        let tick = "✓";
+        // let tick = "✓";
         let cross = "×";
         let span = |fill| -> Vec<Span> { ["[", fill, "] - "].into_iter().map(Span::raw).collect() };
 
-        let lines: Vec<ListItem> =
-            std::iter::once((&self.list.cargo_status.0, self.list.cargo_status.2))
-                .chain(self.list.items.iter().map(|it| (&it.info, it.toggled)))
-                .enumerate()
-                .map(|(i, (name, toggled))| {
-                    let mut spans = if toggled { span(tick) } else { span(cross) };
-                    spans.push(Span::raw(name));
-                    let mut line = Line::from(spans);
-                    if i == 0 {
-                        line.patch_style(Style::default().fg(self.list.cargo_color()));
-                    }
-                    let res = ListItem::new(line);
-
-                    if i == self.list.index {
-                        res.style(Style::default().add_modifier(Modifier::BOLD))
-                    } else {
-                        res
-                    }
-                })
-                .collect();
-        lines
+        let mut line1 = span(cross);
+        line1.push(Span::raw(self.list.cargo_status.0.clone()));
+        let mut line1 = Line::from(line1);
+        if self.list.index == 0 {
+            line1.patch_style(Style::default().add_modifier(Modifier::BOLD));
+        }
+        let mut line2 = span(cross);
+        line2.push(Span::raw(self.list.project_todo.0.clone()));
+        let mut line2 = Line::from(line2);
+        if self.list.index == 1 {
+            line2.patch_style(Style::default().add_modifier(Modifier::BOLD));
+        }
+        [line1, line2].map(ListItem::new).to_vec()
     }
 }
