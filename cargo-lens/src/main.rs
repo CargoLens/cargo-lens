@@ -17,6 +17,7 @@ use std::{error::Error, io};
 
 mod actor;
 pub mod app;
+pub mod components;
 #[cfg(feature = "debug_socket")]
 mod debug;
 mod events;

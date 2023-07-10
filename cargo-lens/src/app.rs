@@ -1,16 +1,15 @@
-use std::{cmp::Ordering, marker::PhantomData};
+use std::marker::PhantomData;
 
-use cargo_metadata::diagnostic::{Diagnostic, DiagnosticLevel};
 use ratatui::{
     backend::Backend,
     layout::{Constraint, Direction, Layout},
-    style::{Color, Modifier, Style},
-    text::{Line, Span, Text},
+    style::{Modifier, Style},
+    text::{Line, Span},
     widgets::{Block, Borders, List, ListItem, Paragraph},
     Frame,
 };
 
-use crate::review_req_checklist::ReviewReqChecklist;
+use crate::{components::diagnostic_para::DiagParagraph, review_req_checklist::ReviewReqChecklist};
 
 /// Central hub for data/widget reference.
 pub struct App<B> {
@@ -78,55 +77,5 @@ impl<B: Backend> App<B> {
                 })
                 .collect();
         lines
-    }
-}
-
-fn dia_sort(a: &Diagnostic, b: &Diagnostic) -> Ordering {
-    let a = a.level;
-    let b = b.level;
-    if a == b {
-        return Ordering::Equal;
-    }
-    match (a, b) {
-        (DiagnosticLevel::Error, _) => Ordering::Less,
-        (DiagnosticLevel::Warning, DiagnosticLevel::Error) => Ordering::Greater,
-        (DiagnosticLevel::Warning, _) => Ordering::Less,
-        _ => Ordering::Greater,
-    }
-}
-
-// get arround the orphan rule
-struct DiagParagraph<'a>(Paragraph<'a>);
-impl From<Vec<Diagnostic>> for DiagParagraph<'_> {
-    fn from(mut values: Vec<Diagnostic>) -> Self {
-        let mut spans = vec![];
-
-        values.sort_by(dia_sort);
-        for value in values {
-            let (level, color) = match value.level {
-                DiagnosticLevel::Error => ("error", Color::Red),
-                DiagnosticLevel::Warning => ("warning", Color::Yellow),
-                _ => ("info", Color::White),
-            };
-
-            // Create the heading for the diagnostic
-            let heading = Span::styled(
-                format!("{}: {}", level, value.message),
-                Style::default().fg(color).add_modifier(Modifier::BOLD),
-            );
-            spans.push(Line::from(heading));
-
-            // If there is a code snippet, add it
-            for span in value.spans {
-                let code_span = Span::raw(format!(
-                    "  --> {}:{}:{}\n",
-                    span.file_name, span.line_start, span.column_start
-                ));
-                spans.push(Line::from(code_span));
-            }
-        }
-        let text: Text = spans.into();
-        let para = Paragraph::new(text);
-        Self(para)
     }
 }
