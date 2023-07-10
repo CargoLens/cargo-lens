@@ -9,7 +9,7 @@ use ratatui::{
     Frame,
 };
 
-use crate::{components::diagnostic_para::DiagParagraph, review_req_checklist::ReviewReqChecklist};
+use crate::components::{checklist::ReviewReqChecklist, diagnostic_para::DiagParagraph};
 
 /// Central hub for data/widget reference.
 pub struct App<B> {

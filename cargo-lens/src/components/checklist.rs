@@ -9,6 +9,7 @@ pub struct ReviewReqChecklist {
 }
 
 impl ReviewReqChecklist {
+    #[must_use]
     pub fn new(items: Vec<ReviewReqChecklistItem>) -> Self {
         Self {
             cargo_status: ("cargo status: ".to_string(), vec![], false),
@@ -34,6 +35,7 @@ impl ReviewReqChecklist {
         }
     }
 
+    #[must_use]
     pub fn info(&self) -> Option<&String> {
         if self.index == 0 {
             Some(&self.cargo_status.0)
@@ -59,6 +61,7 @@ impl ReviewReqChecklist {
     pub fn set_cargo_ntfn(&mut self, state: Vec<Diagnostic>) {
         self.cargo_status.1 = state;
     }
+    #[must_use]
     pub fn cargo_color(&self) -> Color {
         let mut res = Color::Green;
         for diag in &self.cargo_status.1 {
@@ -79,6 +82,7 @@ pub struct ReviewReqChecklistItem {
     pub toggled: bool,
 }
 
+#[must_use]
 pub fn foo_bar_items() -> Vec<ReviewReqChecklistItem> {
     vec![ReviewReqChecklistItem {
         name: "Lints".to_string(),

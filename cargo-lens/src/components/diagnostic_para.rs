@@ -13,10 +13,10 @@ fn dia_sort(a: &Diagnostic, b: &Diagnostic) -> Ordering {
     if a == b {
         return Ordering::Equal;
     }
+    // error -> warn -> rest
     match (a, b) {
-        (DiagnosticLevel::Error, _) => Ordering::Less,
         (DiagnosticLevel::Warning, DiagnosticLevel::Error) => Ordering::Greater,
-        (DiagnosticLevel::Warning, _) => Ordering::Less,
+        (DiagnosticLevel::Warning | DiagnosticLevel::Error, _) => Ordering::Less,
         _ => Ordering::Greater,
     }
 }

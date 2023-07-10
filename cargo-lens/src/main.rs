@@ -24,13 +24,11 @@ mod events;
 /// Overrides std-provided print macros so it doesn't interfere with the terminal.
 /// To use the std-print macros, call with `std::[e]print[ln]!`
 mod print_macros;
-mod review_req_checklist;
 
+use crate::components::checklist::{self, ReviewReqChecklist};
 use actor::cargo::{CargoActor, CargoImport};
 use app::App;
 use events::{select_event, AsyncNtfn, QueueEvent};
-
-use crate::review_req_checklist::ReviewReqChecklist;
 
 fn main() -> Result<(), Box<dyn Error>> {
     cfg_if::cfg_if! {
@@ -59,7 +57,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut terminal = Terminal::new(backend)?;
 
     // create app and run it
-    let list = ReviewReqChecklist::new(review_req_checklist::foo_bar_items());
+    let list = ReviewReqChecklist::new(checklist::foo_bar_items());
     let app = App::new(list);
     let res = event_loop(&mut terminal, app);
 
