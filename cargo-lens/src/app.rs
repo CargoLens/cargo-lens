@@ -1,16 +1,15 @@
-use std::{cmp::Ordering, marker::PhantomData};
+use std::marker::PhantomData;
 
-use cargo_metadata::diagnostic::{Diagnostic, DiagnosticLevel};
 use ratatui::{
     backend::Backend,
     layout::{Constraint, Direction, Layout},
-    style::{Color, Modifier, Style},
-    text::{Line, Span, Text},
+    style::{Modifier, Style},
+    text::{Line, Span},
     widgets::{Block, Borders, List, ListItem, Paragraph},
     Frame,
 };
 
-use crate::review_req_checklist::ReviewReqChecklist;
+use crate::components::{checklist::ReviewReqChecklist, diagnostic::DiagParagraph};
 
 /// Central hub for data/widget reference.
 pub struct App<B> {
@@ -45,86 +44,30 @@ impl<B: Backend> App<B> {
             let paras: DiagParagraph = self.list.cargo_status.1.clone().into();
             paras.0
         } else {
-            Paragraph::new::<&str>(self.list.info().expect("internal error")).block(block)
+            Paragraph::new::<&str>(&self.list.project_todo.1)
         };
 
-        f.render_widget(info, chunks[1]);
+        f.render_widget(info.block(block), chunks[1]);
     }
 
     #[must_use]
     pub fn lines(&self) -> Vec<ListItem> {
-        let tick = "✓";
+        // let tick = "✓";
         let cross = "×";
         let span = |fill| -> Vec<Span> { ["[", fill, "] - "].into_iter().map(Span::raw).collect() };
 
-        let lines: Vec<ListItem> =
-            std::iter::once((&self.list.cargo_status.0, self.list.cargo_status.2))
-                .chain(self.list.items.iter().map(|it| (&it.info, it.toggled)))
-                .enumerate()
-                .map(|(i, (name, toggled))| {
-                    let mut spans = if toggled { span(tick) } else { span(cross) };
-                    spans.push(Span::raw(name));
-                    let mut line = Line::from(spans);
-                    if i == 0 {
-                        line.patch_style(Style::default().fg(self.list.cargo_color()));
-                    }
-                    let res = ListItem::new(line);
-
-                    if i == self.list.index {
-                        res.style(Style::default().add_modifier(Modifier::BOLD))
-                    } else {
-                        res
-                    }
-                })
-                .collect();
-        lines
-    }
-}
-
-// get arround the orphan rule
-struct DiagParagraph<'a>(Paragraph<'a>);
-impl From<Vec<Diagnostic>> for DiagParagraph<'_> {
-    fn from(mut values: Vec<Diagnostic>) -> Self {
-        let mut spans = vec![];
-
-        values.sort_by(|a, b| {
-            let a = a.level;
-            let b = b.level;
-            if a == b {
-                return Ordering::Equal;
-            }
-            match (a, b) {
-                (DiagnosticLevel::Error, _) => Ordering::Less,
-                (DiagnosticLevel::Warning, DiagnosticLevel::Error) => Ordering::Greater,
-                (DiagnosticLevel::Warning, _) => Ordering::Less,
-                _ => Ordering::Greater,
-            }
-        });
-        for value in values {
-            let (level, color) = match value.level {
-                DiagnosticLevel::Error => ("error", Color::Red),
-                DiagnosticLevel::Warning => ("warning", Color::Yellow),
-                _ => ("info", Color::White),
-            };
-
-            // Create the heading for the diagnostic
-            let heading = Span::styled(
-                format!("{}: {}", level, value.message),
-                Style::default().fg(color).add_modifier(Modifier::BOLD),
-            );
-            spans.push(Line::from(heading));
-
-            // If there is a code snippet, add it
-            for span in value.spans {
-                let code_span = Span::raw(format!(
-                    "  --> {}:{}:{}\n",
-                    span.file_name, span.line_start, span.column_start
-                ));
-                spans.push(Line::from(code_span));
-            }
+        let mut line1 = span(cross);
+        line1.push(Span::raw(self.list.cargo_status.0.clone()));
+        let mut line1 = Line::from(line1);
+        if self.list.index == 0 {
+            line1.patch_style(Style::default().add_modifier(Modifier::BOLD));
         }
-        let text: Text = spans.into();
-        let para = Paragraph::new(text);
-        Self(para)
+        let mut line2 = span(cross);
+        line2.push(Span::raw(self.list.project_todo.0.clone()));
+        let mut line2 = Line::from(line2);
+        if self.list.index == 1 {
+            line2.patch_style(Style::default().add_modifier(Modifier::BOLD));
+        }
+        [line1, line2].map(ListItem::new).to_vec()
     }
 }
